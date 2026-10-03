@@ -1,0 +1,82 @@
+### 1. GET Semua Layanan
+GET http://localhost:5000/api/services
+
+### 2. POST Tambah Layanan Baru
+POST http://localhost:5000/api/services
+Content-Type: application/json
+
+{
+  "name": "Surat Keterangan Domisili",
+  "description": "Layanan pembuatan surat keterangan domisili untuk warga",
+  "requirements": "Fotokopi KTP, Fotokopi KK, Surat Pengantar RT/RW"
+}
+
+### 3. PUT Update Layanan (Ganti angka 1 dengan ID yang ada di database)
+PUT http://localhost:5000/api/services/1
+Content-Type: application/json
+
+{
+  "name": "Surat Keterangan Domisili (Update)",
+  "description": "Deskripsi layanan sudah diperbarui",
+  "requirements": "Hanya butuh KTP"
+}
+
+### 4. DELETE Hapus Layanan (Ganti angka 1 dengan ID yang ingin dihapus)
+DELETE http://localhost:5000/api/services/1
+
+### ==================== PROFILE ENDPOINTS ====================
+
+### 5. GET Info Kelurahan
+GET http://localhost:5000/api/profile
+
+### 6. PUT Update Info Kelurahan
+PUT http://localhost:5000/api/profile
+Content-Type: application/json
+
+{
+  "name": "Kelurahan Woloan",
+  "description": "Kelurahan Woloan adalah salah satu kelurahan di Kota Tomohon, Sulawesi Utara",
+  "address": "Jl. Woloan No. 1, Tomohon",
+  "phone": "0431-123456"
+}
+
+### 7. GET Semua Perangkat Desa
+GET http://localhost:5000/api/profile/officials
+
+### 8. POST Tambah Perangkat Desa
+POST http://localhost:5000/api/profile/officials
+Content-Type: application/json
+
+{
+  "name": "Bapak John Doe",
+  "position": "Lurah",
+  "photo": "https://via.placeholder.com/150"
+}
+
+### 9. PUT Update Perangkat Desa (Ganti ID 1 sesuai data)
+PUT http://localhost:5000/api/profile/officials/1
+Content-Type: application/json
+
+{
+  "name": "Bapak John Doe (Update)",
+  "position": "Lurah",
+  "photo": "https://via.placeholder.com/150"
+}
+
+### 10. DELETE Hapus Perangkat Desa (Ganti ID 1 sesuai data)
+DELETE http://localhost:5000/api/profile/officials/1
+
+### 11. GET Semua Lembaga Desa
+GET http://localhost:5000/api/profile/institutions
+
+### 12. POST Tambah Lembaga Desa
+POST http://localhost:5000/api/profile/institutions
+Content-Type: application/json
+
+{
+  "name": "Karang Taruna",
+  "description": "Organisasi pemuda Kelurahan Woloan"
+}
+
+### 13. DELETE Hapus Lembaga Desa (Ganti ID 1 sesuai data)
+DELETE http://localhost:5000/api/profile/institutions/1
