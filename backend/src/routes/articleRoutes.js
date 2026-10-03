@@ -1,11 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const articleController = require('../controllers/articleController');
+   const express = require('express');
+   const router = express.Router();
+   const articleController = require('../controllers/articleController');
 
-// GET /api/articles - Ambil semua artikel
-router.get('/', articleController.getAllArticles);
+   router.get('/', articleController.getAllArticles);
+   router.get('/:id', articleController.getArticleById);
+   router.post('/', articleController.createArticle);       // Rute untuk menambah
+   router.put('/:id', articleController.updateArticle);     // Rute untuk mengubah
+   router.delete('/:id', articleController.deleteArticle);  // Rute untuk menghapus
 
-// GET /api/articles/:id - Ambil artikel by ID
-router.get('/:id', articleController.getArticleById);
-
-module.exports = router;
+   module.exports = router;
