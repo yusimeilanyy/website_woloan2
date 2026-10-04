@@ -8,12 +8,20 @@ function App() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [visitorCount] = useState(Math.floor(Math.random() * 50) + 20)
 
+  // State untuk data dari database
+  const [articles, setArticles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [villageInfo, setVillageInfo] = useState(null)
+  const [officials, setOfficials] = useState([])
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [selectedArticle, setSelectedArticle] = useState(null)
+
   const slides = [
     {
       image: gunung,
       title: 'Selamat Datang',
       subtitle: 'Website Resmi Kelurahan Woloan Dua',
-      description: 'Sumber informasi terbaru tentang pemerintahan di Kelurahan WoloanDua, Kota Tomohon'
+      description: 'Sumber informasi terbaru tentang pemerintahan di Kelurahan Woloan Dua, Kota Tomohon'
     },
     {
       image: gunung,
@@ -29,16 +37,14 @@ function App() {
     }
   ]
 
+  // Detect scroll untuk navbar
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
-    }
+    const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Auto-slide hero
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length)
@@ -46,13 +52,46 @@ function App() {
     return () => clearInterval(timer)
   }, [slides.length])
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }
+  // Ambil data artikel dari backend
+  useEffect(() => {
+    fetch('http://localhost:5000/api/articles')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setArticles(data.data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Gagal mengambil artikel:', err)
+        setLoading(false)
+      })
+  }, [])
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-  }
+  // Ambil data profil kelurahan
+  useEffect(() => {
+    fetch('http://localhost:5000/api/profile/info')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setVillageInfo(data.data)
+        setProfileLoading(false)
+      })
+      .catch(err => {
+        console.error('Gagal ambil info kelurahan:', err)
+        setProfileLoading(false)
+      })
+
+    fetch('http://localhost:5000/api/profile/officials')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setOfficials(data.data)
+      })
+      .catch(err => console.error('Gagal ambil perangkat:', err))
+  }, [])
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+
+  const openArticleModal = (article) => setSelectedArticle(article)
+  const closeArticleModal = () => setSelectedArticle(null)
 
   const menuItems = [
     { name: 'Home', link: '#home' },
@@ -60,7 +99,6 @@ function App() {
     { name: 'Infografis', link: '#infografis' },
     { name: 'Layanan', link: '#layanan' },
     { name: 'Berita', link: '#berita' },
-    { name: 'Transparansi', link: '#transparansi' },
     { name: 'PPID', link: '#ppid' }
   ]
 
@@ -71,7 +109,7 @@ function App() {
       <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-container">
           <div className="navbar-brand">
-            <div className="logo-circle">️</div>
+            <div className="logo-circle">🏘️</div>
             <div className="brand-text">
               <h1>Kelurahan Woloan Dua</h1>
               <p>Kota Tomohon</p>
@@ -153,10 +191,10 @@ function App() {
 
         <div className="complaint-widget">
           <button className="btn-complaint">
-            <span className="complaint-icon">📢</span>
+            <span className="complaint-icon"></span>
             <span>Pengaduan</span>
           </button>
-          <button className="btn-accessibility" title="Accessibility"></button>
+          <button className="btn-accessibility" title="Accessibility">♿</button>
         </div>
       </section>
 
@@ -166,7 +204,7 @@ function App() {
           <h2 className="section-title">Layanan Cepat</h2>
           <div className="quick-grid">
             {[
-              { icon: '🗺️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah' },
+              { icon: '️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah' },
               { icon: '📋', title: 'Layanan Surat', desc: 'Ajukan surat online' },
               { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan' },
               { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting' },
@@ -189,20 +227,42 @@ function App() {
       <section className="info-section" id="profil">
         <div className="container">
           <h2 className="section-title">Profil Kelurahan</h2>
-          <div className="info-grid">
-            <div className="info-card">
-              <h3>🏛️ Sejarah</h3>
-              <p>Sejarah Kelurahan Woloan Dua dari masa ke masa.</p>
+          
+          {profileLoading ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Memuat profil...</p>
+          ) : villageInfo ? (
+            <div className="info-grid">
+              <div className="info-card" style={{ gridColumn: '1 / -1' }}>
+                <h3>🏛️ {villageInfo.name}</h3>
+                <p>{villageInfo.description}</p>
+                <p style={{ marginTop: '15px' }}>
+                  <strong>📍 Alamat:</strong> {villageInfo.address}
+                </p>
+                <p>
+                  <strong>📞 Telepon:</strong> {villageInfo.phone}
+                </p>
+              </div>
             </div>
-            <div className="info-card">
-              <h3> Visi & Misi</h3>
-              <p>Visi dan misi pemerintahan Kelurahan Woloan Dua.</p>
+          ) : (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Data profil belum tersedia.</p>
+          )}
+
+          <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>👥 Perangkat Kelurahan</h3>
+          
+          {officials.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>
+          ) : (
+            <div className="info-grid">
+              {officials.map((official, index) => (
+                <div key={official.id || index} className="info-card">
+                  <h3>{official.name}</h3>
+                  <p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>
+                    {official.position}
+                  </p>
+                </div>
+              ))}
             </div>
-            <div className="info-card">
-              <h3>👥 Struktur Organisasi</h3>
-              <p>Struktur organisasi dan perangkat kelurahan.</p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -255,47 +315,39 @@ function App() {
       <section className="info-section" id="berita">
         <div className="container">
           <h2 className="section-title">Berita Terbaru</h2>
-          <div className="info-grid">
-            <div className="info-card">
-              <h3>📰 Kegiatan Kelurahan</h3>
-              <p>Kegiatan dan pengumuman terkini dari Kelurahan Woloan Dua.</p>
-              <a href="#" className="btn-link">Lihat Semua →</a>
+          
+          {loading ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Memuat berita...</p>
+          ) : articles.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada berita yang dipublikasikan.</p>
+          ) : (
+            <div className="info-grid">
+              {articles.slice(0, 3).map((article, index) => (
+                <div key={article.id || index} className="info-card">
+                  <h3>📰 {article.title}</h3>
+                  <p>{article.content.substring(0, 100)}...</p>
+                  <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '10px' }}>
+                    Oleh: {article.author || 'Admin'}
+                  </p>
+                  <button 
+                    onClick={() => openArticleModal(article)}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#2d8a5e', 
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      padding: 0,
+                      marginTop: '10px'
+                    }}
+                  >
+                    Baca Selengkapnya →
+                  </button>
+                </div>
+              ))}
             </div>
-            <div className="info-card">
-              <h3>🏛️ Pengumuman</h3>
-              <p>Pengumuman resmi dari pemerintah kelurahan.</p>
-              <a href="#" className="btn-link">Lihat Semua →</a>
-            </div>
-            <div className="info-card">
-              <h3>🎯 Agenda</h3>
-              <p>Agenda dan kegiatan mendatang.</p>
-              <a href="#" className="btn-link">Lihat Semua →</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== TRANSPARANSI SECTION ===== */}
-      <section className="info-section" id="transparansi">
-        <div className="container">
-          <h2 className="section-title">Transparansi</h2>
-          <div className="info-grid">
-            <div className="info-card">
-              <h3>💰 APBDes</h3>
-              <p>Informasi Anggaran Pendapatan dan Belanja Desa.</p>
-              <a href="#" className="btn-link">Lihat Detail →</a>
-            </div>
-            <div className="info-card">
-              <h3>📊 Laporan Keuangan</h3>
-              <p>Laporan realisasi anggaran kelurahan.</p>
-              <a href="#" className="btn-link">Lihat Laporan →</a>
-            </div>
-            <div className="info-card">
-              <h3>📋 Program Kerja</h3>
-              <p>Program kerja dan realisasinya.</p>
-              <a href="#" className="btn-link">Lihat Program →</a>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -323,6 +375,68 @@ function App() {
         </div>
       </section>
 
+      {/* ===== MODAL ARTIKEL ===== */}
+      {selectedArticle && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={closeArticleModal}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeArticleModal}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666'
+              }}
+            >
+              ✕
+            </button>
+            
+            <h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>
+              📰 {selectedArticle.title}
+            </h2>
+            
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
+              Oleh: {selectedArticle.author || 'Admin'}
+            </p>
+            
+            <div style={{ lineHeight: '1.6' }}>
+              {selectedArticle.content}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== FOOTER ===== */}
       <footer className="footer">
         <div className="container">
@@ -330,7 +444,7 @@ function App() {
             <div className="footer-col">
               <h4>Kelurahan Woloan Dua</h4>
               <p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p>
-              <p>📞 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p>
+              <p> 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p>
             </div>
             <div className="footer-col">
               <h4>Menu Cepat</h4>
@@ -338,7 +452,6 @@ function App() {
                 <li><a href="#profil">Profil Kelurahan</a></li>
                 <li><a href="#layanan">Layanan</a></li>
                 <li><a href="#berita">Berita</a></li>
-                <li><a href="#transparansi">Transparansi</a></li>
               </ul>
             </div>
             <div className="footer-col">
