@@ -15,6 +15,9 @@ function App() {
   const [officials, setOfficials] = useState([])
   const [profileLoading, setProfileLoading] = useState(true)
   const [selectedArticle, setSelectedArticle] = useState(null)
+  const [statistics, setStatistics] = useState([])
+  const [galleries, setGalleries] = useState([])
+  const [statsLoading, setStatsLoading] = useState(true)
 
   const slides = [
     {
@@ -87,6 +90,27 @@ function App() {
       .catch(err => console.error('Gagal ambil perangkat:', err))
   }, [])
 
+  // Ambil data statistik dan galeri
+  useEffect(() => {
+    fetch('http://localhost:5000/api/stats/statistics')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setStatistics(data.data)
+        setStatsLoading(false)
+      })
+      .catch(err => {
+        console.error('Gagal ambil statistik:', err)
+        setStatsLoading(false)
+      })
+
+    fetch('http://localhost:5000/api/stats/galleries')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setGalleries(data.data)
+      })
+      .catch(err => console.error('Gagal ambil galeri:', err))
+  }, [])
+
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
 
@@ -97,10 +121,24 @@ function App() {
     { name: 'Home', link: '#home' },
     { name: 'Profil Desa', link: '#profil' },
     { name: 'Infografis', link: '#infografis' },
-    { name: 'Layanan', link: '#layanan' },
+    { name: 'Galeri', link: '#galeri' },
     { name: 'Berita', link: '#berita' },
     { name: 'PPID', link: '#ppid' }
   ]
+
+  // Fungsi untuk sort perangkat kelurahan (Lurah di atas)
+  const sortedOfficials = [...officials].sort((a, b) => {
+    const priority = {
+      'Lurah': 1,
+      'Sekretaris Lurah': 2,
+      'Kepala Seksi Pemerintahan': 3,
+      'Kepala Seksi Pelayanan': 4,
+      'Kepala Seksi Kesejahteraan': 5,
+    }
+    const aPriority = priority[a.position] || 99
+    const bPriority = priority[b.position] || 99
+    return aPriority - bPriority
+  })
 
   return (
     <div className="landing-page">
@@ -191,7 +229,7 @@ function App() {
 
         <div className="complaint-widget">
           <button className="btn-complaint">
-            <span className="complaint-icon"></span>
+            <span className="complaint-icon">📢</span>
             <span>Pengaduan</span>
           </button>
           <button className="btn-accessibility" title="Accessibility">♿</button>
@@ -204,20 +242,20 @@ function App() {
           <h2 className="section-title">Layanan Cepat</h2>
           <div className="quick-grid">
             {[
-              { icon: '️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah' },
-              { icon: '📋', title: 'Layanan Surat', desc: 'Ajukan surat online' },
-              { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan' },
-              { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting' },
-              { icon: '💰', title: 'Transparansi', desc: 'Informasi anggaran' },
-              { icon: '📊', title: 'Statistik', desc: 'Data penduduk' },
-              { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik' },
-              { icon: '🏆', title: 'Potensi Kelurahan', desc: 'Informasi potensi wilayah' }
+              { icon: '🗺️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah', link: '#infografis' },
+              { icon: '', title: 'Layanan Surat', desc: 'Ajukan surat online', link: '#layanan' },
+              { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan', link: '#layanan' },
+              { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting', link: '#profil' },
+              { icon: '📊', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
+              { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik', link: '#ppid' },
+              { icon: '📰', title: 'Berita', desc: 'Kabar terbaru', link: '#berita' },
+              { icon: '🏆', title: 'Potensi Kelurahan', desc: 'Sentra ukiran kayu', link: '#profil' }
             ].map((item, index) => (
-              <div key={index} className="quick-card">
+              <a key={index} href={item.link} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="quick-icon">{item.icon}</div>
                 <h3>{item.title}</h3>
                 <p>{item.desc}</p>
-              </div>
+              </a>
             ))}
           </div>
         </div>
@@ -236,7 +274,7 @@ function App() {
                 <h3>🏛️ {villageInfo.name}</h3>
                 <p>{villageInfo.description}</p>
                 <p style={{ marginTop: '15px' }}>
-                  <strong>📍 Alamat:</strong> {villageInfo.address}
+                  <strong> Alamat:</strong> {villageInfo.address}
                 </p>
                 <p>
                   <strong>📞 Telepon:</strong> {villageInfo.phone}
@@ -249,11 +287,11 @@ function App() {
 
           <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>👥 Perangkat Kelurahan</h3>
           
-          {officials.length === 0 ? (
+          {sortedOfficials.length === 0 ? (
             <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>
           ) : (
             <div className="info-grid">
-              {officials.map((official, index) => (
+              {sortedOfficials.map((official, index) => (
                 <div key={official.id || index} className="info-card">
                   <h3>{official.name}</h3>
                   <p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>
@@ -269,21 +307,55 @@ function App() {
       {/* ===== INFOGRAFIS SECTION ===== */}
       <section className="info-section" id="infografis">
         <div className="container">
-          <h2 className="section-title">Infografis</h2>
-          <div className="info-grid">
-            <div className="info-card">
-              <h3>📊 Data Penduduk</h3>
-              <p>Informasi statistik penduduk Kelurahan Woloan Dua.</p>
+          <h2 className="section-title">Infografis & Statistik</h2>
+          
+          {statsLoading ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Memuat data...</p>
+          ) : statistics.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data statistik.</p>
+          ) : (
+            <div className="info-grid">
+              {statistics.map((stat, index) => (
+                <div key={stat.id || index} className="info-card" style={{ textAlign: 'center' }}>
+                  <h3 style={{ fontSize: '2rem', color: '#2d8a5e', marginBottom: '10px' }}>
+                    {stat.value}
+                  </h3>
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{stat.category}</p>
+                  <p style={{ fontSize: '0.85rem', color: '#666' }}>Tahun {stat.year}</p>
+                </div>
+              ))}
             </div>
-            <div className="info-card">
-              <h3>🗺️ Peta Wilayah</h3>
-              <p>Peta wilayah dan batas-batas kelurahan.</p>
+          )}
+        </div>
+      </section>
+
+      {/* ===== GALERI SECTION ===== */}
+      <section className="info-section" id="galeri" style={{ backgroundColor: '#f8fafc' }}>
+        <div className="container">
+          <h2 className="section-title">Galeri Kegiatan</h2>
+          
+          {galleries.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada foto kegiatan.</p>
+          ) : (
+            <div className="info-grid">
+              {galleries.map((photo, index) => (
+                <div key={photo.id || index} className="info-card" style={{ padding: '10px' }}>
+                  <img 
+                    src={photo.image_url} 
+                    alt={photo.title}
+                    style={{ 
+                      width: '100%', 
+                      height: '200px', 
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      marginBottom: '10px'
+                    }}
+                  />
+                  <h3 style={{ fontSize: '1rem', textAlign: 'center' }}>{photo.title}</h3>
+                </div>
+              ))}
             </div>
-            <div className="info-card">
-              <h3>📈 Pembangunan</h3>
-              <p>Program dan realisasi pembangunan kelurahan.</p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -444,7 +516,7 @@ function App() {
             <div className="footer-col">
               <h4>Kelurahan Woloan Dua</h4>
               <p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p>
-              <p> 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p>
+              <p>📞 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p>
             </div>
             <div className="footer-col">
               <h4>Menu Cepat</h4>
