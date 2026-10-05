@@ -1,31 +1,559 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Home from './components/Home'
-import Profil from './components/Profil'
-import Berita from './components/Berita'
-import DetailBerita from './components/DetailBerita'
-import Layanan from './components/Layanan'
-import Kontak from './components/Kontak'
-import Transparansi from './components/Transparansi' 
+import { useState, useEffect } from 'react'
 import './App.css'
+import gunung from './assets/gunung.png' 
+import tomohon from './assets/tomohon.png' 
 
 function App() {
+  const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [visitorCount] = useState(Math.floor(Math.random() * 50) + 20)
+
+  // State untuk data dari database
+  const [articles, setArticles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [villageInfo, setVillageInfo] = useState(null)
+  const [officials, setOfficials] = useState([])
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [selectedArticle, setSelectedArticle] = useState(null)
+  const [statistics, setStatistics] = useState([])
+  const [galleries, setGalleries] = useState([])
+  const [statsLoading, setStatsLoading] = useState(true)
+
+  const slides = [
+    {
+      image: gunung,
+      title: 'Selamat Datang',
+      subtitle: 'Website Resmi Kelurahan Woloan Dua',
+      description: 'Sumber informasi terbaru tentang pemerintahan di Kelurahan Woloan Dua, Kota Tomohon'
+    },
+    {
+      image: gunung,
+      title: 'Potensi Desa',
+      subtitle: 'Kerajinan Ukiran Kayu',
+      description: 'Woloan terkenal dengan kerajinan ukiran kayu dan anyaman bambu yang mendunia'
+    },
+    {
+      image: gunung,
+      title: 'Wisata Alam',
+      subtitle: 'Keindahan Gunung Lokon',
+      description: 'Nikmati pemandangan alam yang memukau dengan udara sejuk pegunungan'
+    }
+  ]
+
+  // Detect scroll untuk navbar
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Auto-slide hero
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [slides.length])
+
+  // Ambil data artikel dari backend
+  useEffect(() => {
+    fetch('http://localhost:5000/api/articles')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setArticles(data.data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Gagal mengambil artikel:', err)
+        setLoading(false)
+      })
+  }, [])
+
+  // Ambil data profil kelurahan
+  useEffect(() => {
+    fetch('http://localhost:5000/api/profile/info')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setVillageInfo(data.data)
+        setProfileLoading(false)
+      })
+      .catch(err => {
+        console.error('Gagal ambil info kelurahan:', err)
+        setProfileLoading(false)
+      })
+
+    fetch('http://localhost:5000/api/profile/officials')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setOfficials(data.data)
+      })
+      .catch(err => console.error('Gagal ambil perangkat:', err))
+  }, [])
+
+  // Ambil data statistik dan galeri
+  useEffect(() => {
+    fetch('http://localhost:5000/api/stats/statistics')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setStatistics(data.data)
+        setStatsLoading(false)
+      })
+      .catch(err => {
+        console.error('Gagal ambil statistik:', err)
+        setStatsLoading(false)
+      })
+
+    fetch('http://localhost:5000/api/stats/galleries')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setGalleries(data.data)
+      })
+      .catch(err => console.error('Gagal ambil galeri:', err))
+  }, [])
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+
+  const openArticleModal = (article) => setSelectedArticle(article)
+  const closeArticleModal = () => setSelectedArticle(null)
+
+  const menuItems = [
+    { name: 'Home', link: '#home' },
+    { name: 'Profil Desa', link: '#profil' },
+    { name: 'Infografis', link: '#infografis' },
+    { name: 'Galeri', link: '#galeri' },
+    { name: 'Berita', link: '#berita' },
+    { name: 'PPID', link: '#ppid' }
+  ]
+
+  // Fungsi untuk sort perangkat kelurahan (Lurah di atas)
+  const sortedOfficials = [...officials].sort((a, b) => {
+    const priority = {
+      'Lurah': 1,
+      'Sekretaris Lurah': 2,
+      'Kepala Seksi Pemerintahan': 3,
+      'Kepala Seksi Pelayanan': 4,
+      'Kepala Seksi Kesejahteraan': 5,
+    }
+    const aPriority = priority[a.position] || 99
+    const bPriority = priority[b.position] || 99
+    return aPriority - bPriority
+  })
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/profil" element={<Profil />} />
-        <Route path="/berita" element={<Berita />} />
-        <Route path="/berita/:id" element={<DetailBerita />} />
-        <Route path="/layanan" element={<Layanan />} />
-        <Route path="/kontak" element={<Kontak />} />
-        <Route path="/transparansi" element={<Transparansi />} /> 
-        <Route path="/pengaduan" element={<Kontak />} />
-        <Route path="/statistik" element={<Home />} />
-        <Route path="/ppid" element={<Home />} />
-        <Route path="/potensi" element={<Home />} />
-        <Route path="/peta" element={<Home />} />
-      </Routes>
-    </Router>
+    <div className="landing-page">
+
+      {/* ===== NAVBAR ===== */}
+      <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
+        <div className="navbar-container">
+          <div className="navbar-brand">
+            <div className="logo-circle">
+  <img 
+    src={tomohon} 
+    alt="Logo Kelurahan Woloan Dua" 
+    style={{ 
+      width: '100%', 
+      height: '100%', 
+      objectFit: 'contain', 
+      padding: '4px' 
+    }} 
+  />
+</div>
+            <div className="brand-text">
+              <h1>Kelurahan Woloan Dua</h1>
+              <p>Kota Tomohon</p>
+            </div>
+          </div>
+
+          <ul className="navbar-menu">
+            {menuItems.map((item, index) => (
+              <li key={index}>
+                <a href={item.link} className={index === 0 ? 'active' : ''}>
+                  {item.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+            <span className={menuOpen ? 'open' : ''}></span>
+            <span className={menuOpen ? 'open' : ''}></span>
+            <span className={menuOpen ? 'open' : ''}></span>
+          </button>
+        </div>
+
+        {menuOpen && (
+          <ul className="mobile-menu">
+            {menuItems.map((item, index) => (
+              <li key={index}>
+                <a href={item.link} onClick={() => setMenuOpen(false)}>
+                  {item.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </nav>
+
+      {/* ===== HERO SECTION ===== */}
+      <section className="hero" id="home">
+        <div className="hero-bg" style={{ backgroundImage: `url(${slides[currentSlide].image})` }}></div>
+        <div className="hero-overlay"></div>
+
+        <button className="slider-btn prev" onClick={prevSlide}>‹</button>
+        <button className="slider-btn next" onClick={nextSlide}>›</button>
+
+        <div className="hero-content">
+          <div className="slide-content">
+            <p className="hero-welcome">{slides[currentSlide].title}</p>
+            <h1 className="hero-title">{slides[currentSlide].subtitle}</h1>
+            <p className="hero-description">{slides[currentSlide].description}</p>
+            <div className="hero-buttons">
+              <a href="#quick-menu" className="btn-primary">Jelajahi Kelurahan</a>
+              <a href="#layanan" className="btn-secondary">Layanan Online</a>
+            </div>
+          </div>
+
+          <div className="slide-indicators">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                className={`indicator ${currentSlide === index ? 'active' : ''}`}
+                onClick={() => setCurrentSlide(index)}
+              ></button>
+            ))}
+          </div>
+        </div>
+
+        <div className="scroll-indicator">
+          <div className="mouse"><div className="wheel"></div></div>
+          <p>Scroll Down</p>
+        </div>
+
+        <div className="visitor-widget">
+          <div className="visitor-icon"></div>
+          <div className="visitor-info">
+            <span className="visitor-count">{visitorCount}</span>
+            <span className="visitor-label">Kunjungan Hari Ini</span>
+          </div>
+        </div>
+
+        <div className="complaint-widget">
+          <button className="btn-complaint">
+            <span className="complaint-icon">📢</span>
+            <span>Pengaduan</span>
+          </button>
+          <button className="btn-accessibility" title="Accessibility">♿</button>
+        </div>
+      </section>
+
+      {/* ===== QUICK MENU SECTION ===== */}
+      <section className="quick-menu" id="quick-menu">
+        <div className="container">
+          <h2 className="section-title">Layanan Cepat</h2>
+          <div className="quick-grid">
+            {[
+              { icon: '🗺️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah', link: '#infografis' },
+              { icon: '', title: 'Layanan Surat', desc: 'Ajukan surat online', link: '#layanan' },
+              { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan', link: '#layanan' },
+              { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting', link: '#profil' },
+              { icon: '📊', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
+              { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik', link: '#ppid' },
+              { icon: '📰', title: 'Berita', desc: 'Kabar terbaru', link: '#berita' },
+              { icon: '', title: 'Potensi Kelurahan', desc: 'Sentra ukiran kayu', link: '#profil' }
+            ].map((item, index) => (
+              <a key={index} href={item.link} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="quick-icon">{item.icon}</div>
+                <h3>{item.title}</h3>
+                <p>{item.desc}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== PROFIL SECTION ===== */}
+      <section className="info-section" id="profil">
+        <div className="container">
+          <h2 className="section-title">Profil Kelurahan</h2>
+          
+          {profileLoading ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Memuat profil...</p>
+          ) : villageInfo ? (
+            <div className="info-grid">
+              <div className="info-card" style={{ gridColumn: '1 / -1' }}>
+                <h3>🏛️ {villageInfo.name}</h3>
+                <p>{villageInfo.description}</p>
+                <p style={{ marginTop: '15px' }}>
+                  <strong>📍 Alamat:</strong> {villageInfo.address}
+                </p>
+                <p>
+                  <strong>📞 Telepon:</strong> {villageInfo.phone}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Data profil belum tersedia.</p>
+          )}
+
+          <h3 style={{ marginTop: '40px', marginBottom: '20px' }}> Perangkat Kelurahan</h3>
+          
+          {sortedOfficials.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>
+          ) : (
+            <div className="info-grid">
+              {sortedOfficials.map((official, index) => (
+                <div key={official.id || index} className="info-card">
+                  <h3>{official.name}</h3>
+                  <p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>
+                    {official.position}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===== INFOGRAFIS SECTION ===== */}
+      <section className="info-section" id="infografis">
+        <div className="container">
+          <h2 className="section-title">Infografis & Statistik</h2>
+          
+          {statsLoading ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Memuat data...</p>
+          ) : statistics.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data statistik.</p>
+          ) : (
+            <div className="info-grid">
+              {statistics.map((stat, index) => (
+                <div key={stat.id || index} className="info-card" style={{ textAlign: 'center' }}>
+                  <h3 style={{ fontSize: '2rem', color: '#2d8a5e', marginBottom: '10px' }}>
+                    {stat.value}
+                  </h3>
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{stat.category}</p>
+                  <p style={{ fontSize: '0.85rem', color: '#666' }}>Tahun {stat.year}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===== GALERI SECTION ===== */}
+      <section className="info-section" id="galeri" style={{ backgroundColor: '#f8fafc' }}>
+        <div className="container">
+          <h2 className="section-title">Galeri Kegiatan</h2>
+          
+          {galleries.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada foto kegiatan.</p>
+          ) : (
+            <div className="info-grid">
+              {galleries.map((photo, index) => (
+                <div key={photo.id || index} className="info-card" style={{ padding: '10px' }}>
+                  <img 
+                    src={photo.image_url} 
+                    alt={photo.title}
+                    style={{ 
+                      width: '100%', 
+                      height: '200px', 
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      marginBottom: '10px'
+                    }}
+                  />
+                  <h3 style={{ fontSize: '1rem', textAlign: 'center' }}>{photo.title}</h3>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===== LAYANAN SECTION ===== */}
+      <section className="info-section" id="layanan">
+        <div className="container">
+          <h2 className="section-title">Layanan</h2>
+          <div className="info-grid">
+            <div className="info-card">
+              <h3>📋 Surat Menyurat</h3>
+              <p>Layanan pengajuan surat secara online.</p>
+              <a href="#" className="btn-link">Ajukan Surat →</a>
+            </div>
+            <div className="info-card">
+              <h3>📢 Pengaduan</h3>
+              <p>Sampaikan keluhan dan saran Anda.</p>
+              <a href="#" className="btn-link">Buat Pengaduan →</a>
+            </div>
+            <div className="info-card">
+              <h3>️ Informasi Publik</h3>
+              <p>Akses informasi publik kelurahan.</p>
+              <a href="#" className="btn-link">Lihat Informasi →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== BERITA SECTION ===== */}
+      <section className="info-section" id="berita">
+        <div className="container">
+          <h2 className="section-title">Berita Terbaru</h2>
+          
+          {loading ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Memuat berita...</p>
+          ) : articles.length === 0 ? (
+            <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada berita yang dipublikasikan.</p>
+          ) : (
+            <div className="info-grid">
+              {articles.slice(0, 3).map((article, index) => (
+                <div key={article.id || index} className="info-card">
+                  <h3> {article.title}</h3>
+                  <p>{article.content.substring(0, 100)}...</p>
+                  <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '10px' }}>
+                    Oleh: {article.author || 'Admin'}
+                  </p>
+                  <button 
+                    onClick={() => openArticleModal(article)}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#2d8a5e', 
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      padding: 0,
+                      marginTop: '10px'
+                    }}
+                  >
+                    Baca Selengkapnya →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===== PPID SECTION ===== */}
+      <section className="info-section" id="ppid">
+        <div className="container">
+          <h2 className="section-title">PPID</h2>
+          <div className="info-grid">
+            <div className="info-card">
+              <h3>️ Informasi Publik</h3>
+              <p>Pejabat Pengelola Informasi dan Dokumentasi.</p>
+              <a href="#" className="btn-link">Lihat Informasi →</a>
+            </div>
+            <div className="info-card">
+              <h3>📄 Permohonan Informasi</h3>
+              <p>Ajukan permohonan informasi publik.</p>
+              <a href="#" className="btn-link">Ajukan →</a>
+            </div>
+            <div className="info-card">
+              <h3>📊 Statistik Informasi</h3>
+              <p>Statistik permohonan informasi publik.</p>
+              <a href="#" className="btn-link">Lihat Statistik →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== MODAL ARTIKEL ===== */}
+      {selectedArticle && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={closeArticleModal}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeArticleModal}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666'
+              }}
+            >
+              ✕
+            </button>
+            
+            <h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>
+              📰 {selectedArticle.title}
+            </h2>
+            
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
+              Oleh: {selectedArticle.author || 'Admin'}
+            </p>
+            
+            <div style={{ lineHeight: '1.6' }}>
+              {selectedArticle.content}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== FOOTER ===== */}
+      <footer className="footer">
+        <div className="container">
+          <div className="footer-grid">
+            <div className="footer-col">
+              <h4>Kelurahan Woloan Dua</h4>
+              <p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p>
+              <p> 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p>
+            </div>
+            <div className="footer-col">
+              <h4>Menu Cepat</h4>
+              <ul>
+                <li><a href="#profil">Profil Kelurahan</a></li>
+                <li><a href="#layanan">Layanan</a></li>
+                <li><a href="#berita">Berita</a></li>
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h4>Ikuti Kami</h4>
+              <div className="social-links">
+                <a href="#">📘 Facebook</a>
+                <a href="#">📷 Instagram</a>
+                <a href="#">▶ YouTube</a>
+              </div>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2026 Kelurahan Woloan Dua.</p>
+          </div>
+        </div>
+      </footer>
+
+    </div>
   )
 }
 
