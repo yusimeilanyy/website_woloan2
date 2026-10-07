@@ -17,8 +17,10 @@ const articleRoutes = require('./routes/articleRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const statsRoutes = require('./routes/statsRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 // Daftarkan SEMUA routes
+app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/services', serviceRoutes);

@@ -4,12 +4,14 @@ import gunung from './assets/gunung.png'
 import tomohon from './assets/tomohon.png' 
 
 function App() {
+  // ==========================================
+  // STATE ASLI (TIDAK DIUBAH)
+  // ==========================================
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [visitorCount] = useState(Math.floor(Math.random() * 50) + 20)
 
-  // State untuk data dari database
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
   const [villageInfo, setVillageInfo] = useState(null)
@@ -19,6 +21,23 @@ function App() {
   const [statistics, setStatistics] = useState([])
   const [galleries, setGalleries] = useState([])
   const [statsLoading, setStatsLoading] = useState(true)
+
+  // ==========================================
+  // STATE BARU UNTUK ADMIN
+  // ==========================================
+  const [adminView, setAdminView] = useState('home') // 'home', 'login', 'dashboard', 'form'
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [currentEditId, setCurrentEditId] = useState(null)
+  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken') || '')
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    author: 'Admin Kelurahan',
+    image_url: ''
+ })
+  const [adminLoading, setAdminLoading] = useState(false)
+  const [adminError, setAdminError] = useState('')
 
   const slides = [
     {
@@ -41,14 +60,15 @@ function App() {
     }
   ]
 
-  // Detect scroll untuk navbar
+  // ==========================================
+  // USE EFFECT ASLI (TIDAK DIUBAH)
+  // ==========================================
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Auto-slide hero
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length)
@@ -56,7 +76,6 @@ function App() {
     return () => clearInterval(timer)
   }, [slides.length])
 
-  // Ambil data artikel dari backend
   useEffect(() => {
     fetch('http://localhost:5000/api/articles')
       .then(res => res.json())
@@ -70,7 +89,6 @@ function App() {
       })
   }, [])
 
-  // Ambil data profil kelurahan
   useEffect(() => {
     fetch('http://localhost:5000/api/profile/info')
       .then(res => res.json())
@@ -91,7 +109,6 @@ function App() {
       .catch(err => console.error('Gagal ambil perangkat:', err))
   }, [])
 
-  // Ambil data statistik dan galeri
   useEffect(() => {
     fetch('http://localhost:5000/api/stats/statistics')
       .then(res => res.json())
@@ -112,9 +129,11 @@ function App() {
       .catch(err => console.error('Gagal ambil galeri:', err))
   }, [])
 
+  // ==========================================
+  // FUNGSI ASLI (TIDAK DIUBAH)
+  // ==========================================
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-
   const openArticleModal = (article) => setSelectedArticle(article)
   const closeArticleModal = () => setSelectedArticle(null)
 
@@ -127,39 +146,172 @@ function App() {
     { name: 'PPID', link: '#ppid' }
   ]
 
-  // Fungsi untuk sort perangkat kelurahan (Lurah di atas)
   const sortedOfficials = [...officials].sort((a, b) => {
-    const priority = {
-      'Lurah': 1,
-      'Sekretaris Lurah': 2,
-      'Kepala Seksi Pemerintahan': 3,
-      'Kepala Seksi Pelayanan': 4,
-      'Kepala Seksi Kesejahteraan': 5,
-    }
+    const priority = { 'Lurah': 1, 'Sekretaris Lurah': 2, 'Kepala Seksi Pemerintahan': 3, 'Kepala Seksi Pelayanan': 4, 'Kepala Seksi Kesejahteraan': 5 }
     const aPriority = priority[a.position] || 99
     const bPriority = priority[b.position] || 99
     return aPriority - bPriority
   })
 
+  // FUNGSI UNTUK ADMIN
+  const handleAdminLogin = async (e) => {
+    e.preventDefault()
+    setAdminError('')
+    setAdminLoading(true)
+
+    // Ambil data dengan cara yang lebih aman
+    const formData = new FormData(e.target)
+    const username = formData.get('username')
+    const password = formData.get('password')
+
+    console.log('🔵 Mencoba login dengan username:', username)
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+
+      console.log('🟡 Status Response dari Backend:', res.status)
+      
+      const data = await res.json()
+      console.log('🟡 Data Response dari Backend:', data)
+
+      if (res.ok && data.success) {
+        console.log('🟢 LOGIN BERHASIL! Mengalihkan ke dashboard...')
+        localStorage.setItem('adminToken', data.token)
+        setAdminToken(data.token)
+        setAdminView('dashboard')
+        
+        // Refresh artikel agar dashboard terbaru
+        fetch('http://localhost:5000/api/articles')
+          .then(r => r.json())
+          .then(d => { if(d.success) setArticles(d.data) })
+      } else {
+        console.log('🔴 Login ditolak backend:', data.message)
+        setAdminError(data.message || 'Username atau password salah')
+      }
+    } catch (err) {
+      // INI YANG PENTING: Kita akan lihat error aslinya di Console
+      console.error('🔴 ERROR JARINGAN / BACKEND TIDAK RESPON:', err) 
+      setAdminError('Gagal terhubung ke server. Pastikan backend (node src/server.js) sedang berjalan.')
+    } finally {
+      console.log('⚪ Proses login selesai (tombol loading dimatikan)')
+      setAdminLoading(false)
+    }
+  }
+
+  // RENDER: TAMPILAN ADMIN (LOGIN, DASHBOARD, FORM)
+  if (adminView === 'login') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', width: '100%', maxWidth: '400px' }}>
+          <h2 style={{ textAlign: 'center', color: '#1e293b', marginBottom: '20px' }}>🔐 Login Admin</h2>
+          {adminError && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{adminError}</div>}
+          <form onSubmit={handleAdminLogin}>
+            <input name="username" placeholder="Username" required style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }} />
+            <input name="password" type="password" placeholder="Password" required style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' }} />
+            <button type="submit" disabled={adminLoading} style={{ width: '100%', padding: '12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {adminLoading ? 'Loading...' : 'Masuk'}
+            </button>
+          </form>
+          <button onClick={() => setAdminView('home')} style={{ width: '100%', marginTop: '10px', padding: '10px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>← Kembali ke Website</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (adminView === 'dashboard') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f1f5f9', padding: '20px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <h2 style={{ color: '#1e293b' }}>📰 Dashboard Admin - Kelola Berita</h2>
+            <div>
+              <button onClick={() => setAdminView('home')} style={{ marginRight: '10px', padding: '8px 16px', background: '#64748b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Lihat Website</button>
+              <button onClick={handleAdminLogout} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Logout</button>
+            </div>
+          </div>
+
+          <button onClick={openAddForm} style={{ marginBottom: '20px', padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ Tambah Berita Baru</button>
+
+          <div style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ textAlign: 'left', padding: '12px', color: '#64748b' }}>Judul</th>
+                  <th style={{ textAlign: 'left', padding: '12px', color: '#64748b' }}>Penulis</th>
+                  <th style={{ textAlign: 'right', padding: '12px', color: '#64748b' }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {articles.map(article => (
+                  <tr key={article.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '15px 12px', color: '#1e293b' }}>{article.title}</td>
+                    <td style={{ padding: '15px 12px', color: '#64748b' }}>{article.author}</td>
+                    <td style={{ padding: '15px 12px', textAlign: 'right' }}>
+                      <button onClick={() => openEditForm(article)} style={{ marginRight: '8px', padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                      <button onClick={() => handleDeleteArticle(article.id)} style={{ padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Hapus</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (adminView === 'form') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f1f5f9', padding: '20px' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', background: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ color: '#1e293b', marginBottom: '20px' }}>{isEditMode ? '✏️ Edit Berita' : '➕ Tambah Berita Baru'}</h2>
+          {adminError && <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>{adminError}</div>}
+          
+          <form onSubmit={handleSaveArticle}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Judul *</label>
+              <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Penulis</label>
+              <input type="text" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>URL Gambar (Opsional)</label>
+              <input type="url" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Isi Berita *</label>
+              <textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} required rows="8" style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box', fontFamily: 'inherit' }}></textarea>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" disabled={adminLoading} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                {adminLoading ? 'Menyimpan...' : 'Simpan'}
+              </button>
+              <button type="button" onClick={() => setAdminView('dashboard')} style={{ padding: '12px 24px', background: '#64748b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Batal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // RENDER: TAMPILAN WEBSITE ASLI (TIDAK DIUBAH SAMA SEKALI)
+  // ==========================================
   return (
     <div className="landing-page">
-
       {/* ===== NAVBAR ===== */}
       <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-container">
           <div className="navbar-brand">
             <div className="logo-circle">
-  <img 
-    src={tomohon} 
-    alt="Logo Kelurahan Woloan Dua" 
-    style={{ 
-      width: '100%', 
-      height: '100%', 
-      objectFit: 'contain', 
-      padding: '4px' 
-    }} 
-  />
-</div>
+              <img src={tomohon} alt="Logo Kelurahan Woloan Dua" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+            </div>
             <div className="brand-text">
               <h1>Kelurahan Woloan Dua</h1>
               <p>Kota Tomohon</p>
@@ -169,9 +321,7 @@ function App() {
           <ul className="navbar-menu">
             {menuItems.map((item, index) => (
               <li key={index}>
-                <a href={item.link} className={index === 0 ? 'active' : ''}>
-                  {item.name}
-                </a>
+                <a href={item.link} className={index === 0 ? 'active' : ''}>{item.name}</a>
               </li>
             ))}
           </ul>
@@ -187,9 +337,7 @@ function App() {
           <ul className="mobile-menu">
             {menuItems.map((item, index) => (
               <li key={index}>
-                <a href={item.link} onClick={() => setMenuOpen(false)}>
-                  {item.name}
-                </a>
+                <a href={item.link} onClick={() => setMenuOpen(false)}>{item.name}</a>
               </li>
             ))}
           </ul>
@@ -217,11 +365,7 @@ function App() {
 
           <div className="slide-indicators">
             {slides.map((_, index) => (
-              <button
-                key={index}
-                className={`indicator ${currentSlide === index ? 'active' : ''}`}
-                onClick={() => setCurrentSlide(index)}
-              ></button>
+              <button key={index} className={`indicator ${currentSlide === index ? 'active' : ''}`} onClick={() => setCurrentSlide(index)}></button>
             ))}
           </div>
         </div>
@@ -277,7 +421,6 @@ function App() {
       <section className="info-section" id="profil">
         <div className="container">
           <h2 className="section-title">Profil Kelurahan</h2>
-          
           {profileLoading ? (
             <p style={{ textAlign: 'center', padding: '20px' }}>Memuat profil...</p>
           ) : villageInfo ? (
@@ -285,12 +428,8 @@ function App() {
               <div className="info-card" style={{ gridColumn: '1 / -1' }}>
                 <h3>🏛️ {villageInfo.name}</h3>
                 <p>{villageInfo.description}</p>
-                <p style={{ marginTop: '15px' }}>
-                  <strong>📍 Alamat:</strong> {villageInfo.address}
-                </p>
-                <p>
-                  <strong>📞 Telepon:</strong> {villageInfo.phone}
-                </p>
+                <p style={{ marginTop: '15px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p>
+                <p><strong>📞 Telepon:</strong> {villageInfo.phone}</p>
               </div>
             </div>
           ) : (
@@ -298,7 +437,6 @@ function App() {
           )}
 
           <h3 style={{ marginTop: '40px', marginBottom: '20px' }}> Perangkat Kelurahan</h3>
-          
           {sortedOfficials.length === 0 ? (
             <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>
           ) : (
@@ -306,9 +444,7 @@ function App() {
               {sortedOfficials.map((official, index) => (
                 <div key={official.id || index} className="info-card">
                   <h3>{official.name}</h3>
-                  <p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>
-                    {official.position}
-                  </p>
+                  <p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>{official.position}</p>
                 </div>
               ))}
             </div>
@@ -320,7 +456,6 @@ function App() {
       <section className="info-section" id="infografis">
         <div className="container">
           <h2 className="section-title">Infografis & Statistik</h2>
-          
           {statsLoading ? (
             <p style={{ textAlign: 'center', padding: '20px' }}>Memuat data...</p>
           ) : statistics.length === 0 ? (
@@ -329,9 +464,7 @@ function App() {
             <div className="info-grid">
               {statistics.map((stat, index) => (
                 <div key={stat.id || index} className="info-card" style={{ textAlign: 'center' }}>
-                  <h3 style={{ fontSize: '2rem', color: '#2d8a5e', marginBottom: '10px' }}>
-                    {stat.value}
-                  </h3>
+                  <h3 style={{ fontSize: '2rem', color: '#2d8a5e', marginBottom: '10px' }}>{stat.value}</h3>
                   <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{stat.category}</p>
                   <p style={{ fontSize: '0.85rem', color: '#666' }}>Tahun {stat.year}</p>
                 </div>
@@ -345,24 +478,13 @@ function App() {
       <section className="info-section" id="galeri" style={{ backgroundColor: '#f8fafc' }}>
         <div className="container">
           <h2 className="section-title">Galeri Kegiatan</h2>
-          
           {galleries.length === 0 ? (
             <p style={{ textAlign: 'center', padding: '20px' }}>Belum ada foto kegiatan.</p>
           ) : (
             <div className="info-grid">
               {galleries.map((photo, index) => (
                 <div key={photo.id || index} className="info-card" style={{ padding: '10px' }}>
-                  <img 
-                    src={photo.image_url} 
-                    alt={photo.title}
-                    style={{ 
-                      width: '100%', 
-                      height: '200px', 
-                      objectFit: 'cover',
-                      borderRadius: '8px',
-                      marginBottom: '10px'
-                    }}
-                  />
+                  <img src={photo.image_url} alt={photo.title} style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} />
                   <h3 style={{ fontSize: '1rem', textAlign: 'center' }}>{photo.title}</h3>
                 </div>
               ))}
@@ -399,7 +521,6 @@ function App() {
       <section className="info-section" id="berita">
         <div className="container">
           <h2 className="section-title">Berita Terbaru</h2>
-          
           {loading ? (
             <p style={{ textAlign: 'center', padding: '20px' }}>Memuat berita...</p>
           ) : articles.length === 0 ? (
@@ -410,22 +531,8 @@ function App() {
                 <div key={article.id || index} className="info-card">
                   <h3> {article.title}</h3>
                   <p>{article.content.substring(0, 100)}...</p>
-                  <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '10px' }}>
-                    Oleh: {article.author || 'Admin'}
-                  </p>
-                  <button 
-                    onClick={() => openArticleModal(article)}
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      color: '#2d8a5e', 
-                      cursor: 'pointer',
-                      fontSize: '1rem',
-                      fontWeight: 'bold',
-                      padding: 0,
-                      marginTop: '10px'
-                    }}
-                  >
+                  <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '10px' }}>Oleh: {article.author || 'Admin'}</p>
+                  <button onClick={() => openArticleModal(article)} style={{ background: 'none', border: 'none', color: '#2d8a5e', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', padding: 0, marginTop: '10px' }}>
                     Baca Selengkapnya →
                   </button>
                 </div>
@@ -461,62 +568,12 @@ function App() {
 
       {/* ===== MODAL ARTIKEL ===== */}
       {selectedArticle && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-          onClick={closeArticleModal}
-        >
-          <div 
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '30px',
-              maxWidth: '600px',
-              width: '100%',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              position: 'relative'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={closeArticleModal}
-              style={{
-                position: 'absolute',
-                top: '15px',
-                right: '15px',
-                background: 'none',
-                border: 'none',
-                fontSize: '24px',
-                cursor: 'pointer',
-                color: '#666'
-              }}
-            >
-              ✕
-            </button>
-            
-            <h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>
-              📰 {selectedArticle.title}
-            </h2>
-            
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
-              Oleh: {selectedArticle.author || 'Admin'}
-            </p>
-            
-            <div style={{ lineHeight: '1.6' }}>
-              {selectedArticle.content}
-            </div>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={closeArticleModal}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={closeArticleModal} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>✕</button>
+            <h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>📰 {selectedArticle.title}</h2>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>Oleh: {selectedArticle.author || 'Admin'}</p>
+            <div style={{ lineHeight: '1.6' }}>{selectedArticle.content}</div>
           </div>
         </div>
       )}
@@ -549,10 +606,15 @@ function App() {
           </div>
           <div className="footer-bottom">
             <p>&copy; 2026 Kelurahan Woloan Dua.</p>
+            {/* LINK RAHASIA UNTUK LOGIN ADMIN */}
+            <p style={{ marginTop: '10px' }}>
+              <a href="#" onClick={(e) => { e.preventDefault(); setAdminView('login'); }} style={{ color: '#64748b', fontSize: '12px', textDecoration: 'none' }}>
+                🔒 Login Admin
+              </a>
+            </p>
           </div>
         </div>
       </footer>
-
     </div>
   )
 }

@@ -1,4 +1,5 @@
 const db = require('../db');
+const { verifyToken } = require('./authController'); 
 
 exports.getAllArticles = async (req, res) => {
   try {
@@ -52,3 +53,59 @@ exports.deleteArticle = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.createArticleAuth = [
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { title, content, author, image_url } = req.body;
+      const [results] = await db.query(
+        'INSERT INTO articles (title, content, author, image_url) VALUES (?, ?, ?, ?)',
+        [title, content, author || null, image_url || null]
+      );
+      res.status(201).json({ 
+        success: true, 
+        message: 'Artikel berhasil ditambahkan', 
+        data: { id: results.insertId } 
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+];
+
+
+exports.updateArticleAuth = [
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { title, content, author, image_url } = req.body;
+      const [results] = await db.query(
+        'UPDATE articles SET title = ?, content = ?, author = ?, image_url = ? WHERE id = ?',
+        [title, content, author || null, image_url || null, req.params.id]
+      );
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
+      }
+      res.json({ success: true, message: 'Artikel berhasil diperbarui' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+];
+
+
+exports.deleteArticleAuth = [
+  verifyToken,
+  async (req, res) => {
+    try {
+      const [results] = await db.query('DELETE FROM articles WHERE id = ?', [req.params.id]);
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
+      }
+      res.json({ success: true, message: 'Artikel berhasil dihapus' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+];
