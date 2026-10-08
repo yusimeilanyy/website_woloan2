@@ -1,14 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const profileController = require('../controllers/profileController');
-const { verifyToken } = require('../controllers/authController'); // Import untuk proteksi admin
 
+// Route GET
 router.get('/info', profileController.getVillageInfo);
 router.get('/officials', profileController.getOfficials);
 router.get('/institutions', profileController.getInstitutions);
-
-// Routes untuk Peta Desa
 router.get('/map', profileController.getMap);
-router.put('/map', verifyToken, profileController.updateMap); // Hanya admin yang bisa update
+
+// Route Peta (PUT)
+router.put('/map', profileController.updateMap);
+
+// Route CRUD Perangkat Desa (POST, PUT, DELETE)
+router.post('/officials', profileController.addOfficial);
+router.put('/officials/:id', profileController.updateOfficial);
+router.delete('/officials/:id', profileController.deleteOfficial);
 
 module.exports = router;
