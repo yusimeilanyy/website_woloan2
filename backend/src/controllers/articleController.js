@@ -1,6 +1,6 @@
 const db = require('../db');
-const { verifyToken } = require('./authController'); 
 
+// 1. Ambil semua artikel
 exports.getAllArticles = async (req, res) => {
   try {
     const [results] = await db.query('SELECT * FROM articles ORDER BY id DESC');
@@ -10,6 +10,7 @@ exports.getAllArticles = async (req, res) => {
   }
 };
 
+// 2. Ambil 1 artikel berdasarkan ID
 exports.getArticleById = async (req, res) => {
   try {
     const [results] = await db.query('SELECT * FROM articles WHERE id = ?', [req.params.id]);
@@ -19,6 +20,7 @@ exports.getArticleById = async (req, res) => {
   }
 };
 
+// 3. Tambah artikel baru
 exports.createArticle = async (req, res) => {
   try {
     const { title, content, author, image_url } = req.body;
@@ -26,12 +28,17 @@ exports.createArticle = async (req, res) => {
       'INSERT INTO articles (title, content, author, image_url) VALUES (?, ?, ?, ?)',
       [title, content, author || null, image_url || null]
     );
-    res.status(201).json({ success: true, message: 'Artikel berhasil ditambahkan', data: { id: results.insertId } });
+    res.status(201).json({ 
+      success: true, 
+      message: 'Artikel berhasil ditambahkan',
+      data: { id: results.insertId }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// 4. Update artikel
 exports.updateArticle = async (req, res) => {
   try {
     const { title, content, author, image_url } = req.body;
@@ -45,67 +52,15 @@ exports.updateArticle = async (req, res) => {
   }
 };
 
+// 5. Hapus artikel
 exports.deleteArticle = async (req, res) => {
   try {
-    await db.query('DELETE FROM articles WHERE id = ?', [req.params.id]);
+    const [results] = await db.query('DELETE FROM articles WHERE id = ?', [req.params.id]);
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
+    }
     res.json({ success: true, message: 'Artikel berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
-exports.createArticleAuth = [
-  verifyToken,
-  async (req, res) => {
-    try {
-      const { title, content, author, image_url } = req.body;
-      const [results] = await db.query(
-        'INSERT INTO articles (title, content, author, image_url) VALUES (?, ?, ?, ?)',
-        [title, content, author || null, image_url || null]
-      );
-      res.status(201).json({ 
-        success: true, 
-        message: 'Artikel berhasil ditambahkan', 
-        data: { id: results.insertId } 
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-];
-
-
-exports.updateArticleAuth = [
-  verifyToken,
-  async (req, res) => {
-    try {
-      const { title, content, author, image_url } = req.body;
-      const [results] = await db.query(
-        'UPDATE articles SET title = ?, content = ?, author = ?, image_url = ? WHERE id = ?',
-        [title, content, author || null, image_url || null, req.params.id]
-      );
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
-      }
-      res.json({ success: true, message: 'Artikel berhasil diperbarui' });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-];
-
-
-exports.deleteArticleAuth = [
-  verifyToken,
-  async (req, res) => {
-    try {
-      const [results] = await db.query('DELETE FROM articles WHERE id = ?', [req.params.id]);
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
-      }
-      res.json({ success: true, message: 'Artikel berhasil dihapus' });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-];
