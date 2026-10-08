@@ -12,19 +12,19 @@ app.use(express.json());
 // Import database
 require('./db');
 
-// Import SEMUA routes
+// Import routes
 const articleRoutes = require('./routes/articleRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/authRoutes'); // ← TAMBAH INI
 
-// Daftarkan SEMUA routes
-app.use('/api/auth', authRoutes);
+// Daftarkan routes
 app.use('/api/articles', articleRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/auth', authRoutes); // ← TAMBAH INI
 
 app.get('/', (req, res) => {
   res.json({ 
