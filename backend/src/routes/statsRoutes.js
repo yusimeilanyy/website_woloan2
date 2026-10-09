@@ -1,36 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const statsController = require('../controllers/statsController');
 
-// 1. GET semua data statistik
-router.get('/statistics', async (req, res) => {
-  try {
-    const [results] = await db.query('SELECT * FROM statistics ORDER BY id DESC');
-    res.json({ success: true, data: results });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Statistics CRUD
+router.get('/statistics', statsController.getAllStatistics);
+router.post('/statistics', statsController.createStatistic);
+router.put('/statistics/:id', statsController.updateStatistic);
+router.delete('/statistics/:id', statsController.deleteStatistic);
 
-// 2. GET semua data anggaran/budget
-router.get('/budget', async (req, res) => {
-  try {
-    const [results] = await db.query('SELECT * FROM budget ORDER BY id DESC');
-    res.json({ success: true, data: results });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Galleries CRUD
+router.get('/galleries', statsController.getAllGalleries);
+router.post('/galleries', statsController.createGallery);
+router.put('/galleries/:id', statsController.updateGallery);
+router.delete('/galleries/:id', statsController.deleteGallery);
 
-// 3. GET semua data galeri
-router.get('/galleries', async (req, res) => {
-  try {
-    const [results] = await db.query('SELECT * FROM galleries ORDER BY id DESC');
-    res.json({ success: true, data: results });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// PENTING: Export router agar bisa dipakai di server.js
 module.exports = router;
