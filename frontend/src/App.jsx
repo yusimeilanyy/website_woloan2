@@ -46,6 +46,8 @@ function App() {
   const [adminLoading, setAdminLoading] = useState(false)
   const [adminError, setAdminError] = useState('')
   const [toasts, setToasts] = useState([])
+  const [logoClickCount, setLogoClickCount] = useState(0)
+  const [lastClickTime, setLastClickTime] = useState(0)
   const [showModal, setShowModal] = useState(null)
   const [animatedStats, setAnimatedStats] = useState({ articles: 0, officials: 0, stats: 0, galleries: 0 })
 
@@ -107,6 +109,21 @@ function App() {
     { image: gunung, title: 'Potensi Desa', subtitle: 'Kerajinan Ukiran Kayu', description: 'Woloan terkenal dengan kerajinan ukiran kayu dan anyaman bambu yang mendunia' },
     { image: gunung, title: 'Wisata Alam', subtitle: 'Keindahan Gunung Lokon', description: 'Nikmati pemandangan alam yang memukau dengan udara sejuk pegunungan' }
   ]
+const handleLogoClick = () => {
+  const now = Date.now()
+  if (now - lastClickTime < 1500) {
+    const newCount = logoClickCount + 1
+    setLogoClickCount(newCount)
+    if (newCount >= 3) {
+      setAdminView('login')
+      setLogoClickCount(0)
+      showToast(' Halaman Login Admin', 'info')
+    }
+  } else {
+    setLogoClickCount(1)
+  }
+  setLastClickTime(now)
+}
 
   const showToast = (message, type = 'success') => {
     const id = Date.now()
@@ -1062,10 +1079,15 @@ function App() {
     <div className="landing-page">
       <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-container">
-          <div className="navbar-brand">
-            <div className="logo-circle"><img src={tomohon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} /></div>
-            <div className="brand-text"><h1>Kelurahan Woloan Dua</h1><p>Kota Tomohon</p></div>
-          </div>
+          <div className="navbar-brand" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+  <div className="logo-circle">
+    <img src={tomohon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+  </div>
+  <div className="brand-text">
+    <h1>Kelurahan Woloan Dua</h1>
+    <p>Kota Tomohon</p>
+  </div>
+</div>
           <ul className="navbar-menu">
             {menuItems.map((item, index) => (<li key={index}><a href={item.link} className={index === 0 ? 'active' : ''}>{item.name}</a></li>))}
           </ul>
