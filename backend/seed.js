@@ -154,12 +154,12 @@ async function seedDatabase() {
 
     // 8. Insert statistik
     const stats = [
-      ['Jumlah Penduduk', '2.512', 2026],
-      ['Jumlah Kepala Keluarga (KK)', '845', 2026],
-      ['Jumlah Laki-laki', '1.280', 2026],
-      ['Jumlah Perempuan', '1.232', 2026],
-      ['Jumlah Lansia', '315', 2026],
-      ['Jumlah Balita & Anak', '420', 2026]
+      ['Jumlah Penduduk', '2.395', 2025],
+      ['Jumlah Kepala Keluarga (KK)', '782', 2025],
+      ['Jumlah Laki-laki', '1.178', 2025],
+      ['Jumlah Perempuan', '1.217', 2025],
+      ['Jumlah Lansia', '370', 2025],
+      ['Jumlah Balita & Anak', '394', 2025]
     ];
     for (const [category, value, year] of stats) {
       await connection.query(

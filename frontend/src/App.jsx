@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import gunung from './assets/gunung.png'
 import tomohon from './assets/tomohon.png'
@@ -55,24 +55,65 @@ function App() {
   const [statForm, setStatForm] = useState({ category: '', value: '', year: new Date().getFullYear() })
   const [galleryForm, setGalleryForm] = useState({ title: '', image_url: '' })
 
+  const adminLayoutFn = useRef(null)
+  const AdminLayout = useRef((props) => adminLayoutFn.current(props)).current
+
+  const [imageMode, setImageMode] = useState('upload')
+  const [imageProcessing, setImageProcessing] = useState(false)
+  const handleImageFile = (file, setData, data, fieldName) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) { showToast('File harus berupa gambar', 'error'); return }
+    if (file.size > 10 * 1024 * 1024) { showToast('Ukuran gambar maksimal 10 MB', 'error'); return }
+    setImageProcessing(true)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX_CHARS = 70000
+        let maxW = 1000
+        let quality = 0.7
+        let dataUrl = ''
+        for (let i = 0; i < 12; i++) {
+          const scale = Math.min(1, maxW / img.width)
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.round(img.width * scale))
+          canvas.height = Math.max(1, Math.round(img.height * scale))
+          const ctx = canvas.getContext('2d')
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          dataUrl = canvas.toDataURL('image/jpeg', quality)
+          if (dataUrl.length <= MAX_CHARS) break
+          maxW = Math.max(240, Math.round(maxW * 0.8))
+          quality = Math.max(0.4, quality - 0.05)
+        }
+        if (dataUrl.length > MAX_CHARS * 1.4) {
+          setImageProcessing(false)
+          showToast('Gambar terlalu rumit untuk dikecilkan, coba gambar lain atau pakai link', 'error')
+          return
+        }
+        setData({ ...data, [fieldName]: dataUrl })
+        setImageProcessing(false)
+      }
+      img.onerror = () => { setImageProcessing(false); showToast('Gambar tidak bisa dibaca', 'error') }
+      img.src = ev.target.result
+    }
+    reader.onerror = () => { setImageProcessing(false); showToast('Gagal membaca file', 'error') }
+    reader.readAsDataURL(file)
+  }
+
   const slides = [
     { image: gunung, title: 'Selamat Datang', subtitle: 'Website Resmi Kelurahan Woloan Dua', description: 'Sumber informasi terbaru tentang pemerintahan di Kelurahan Woloan Dua, Kota Tomohon' },
     { image: gunung, title: 'Potensi Desa', subtitle: 'Kerajinan Ukiran Kayu', description: 'Woloan terkenal dengan kerajinan ukiran kayu dan anyaman bambu yang mendunia' },
     { image: gunung, title: 'Wisata Alam', subtitle: 'Keindahan Gunung Lokon', description: 'Nikmati pemandangan alam yang memukau dengan udara sejuk pegunungan' }
   ]
 
-  // ==========================================
-  // TOAST NOTIFICATION SYSTEM
-  // ==========================================
   const showToast = (message, type = 'success') => {
     const id = Date.now()
     setToasts(prev => [...prev, { id, message, type }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
   }
 
-  // ==========================================
-  // ANIMATED COUNTER
-  // ==========================================
   useEffect(() => {
     const targets = { articles: articles.length, officials: officials.length, stats: statistics.length, galleries: galleries.length }
     const duration = 1500
@@ -93,9 +134,6 @@ function App() {
     return () => clearInterval(timer)
   }, [articles.length, officials.length, statistics.length, galleries.length])
 
-  // ==========================================
-  // USE EFFECT WEBSITE
-  // ==========================================
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll)
@@ -124,9 +162,6 @@ function App() {
       .catch(() => {})
   }, [])
 
-  // ==========================================
-  // FUNGSI WEBSITE
-  // ==========================================
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
   const openArticleModal = (article) => setSelectedArticle(article)
@@ -147,9 +182,6 @@ function App() {
     return (priority[a.position] || 99) - (priority[b.position] || 99)
   })
 
-  // ==========================================
-  // FUNGSI ADMIN - AUTH
-  // ==========================================
   const handleAdminLogin = async (e) => {
     e.preventDefault()
     setAdminError('')
@@ -190,13 +222,15 @@ function App() {
   }
 
   // ==========================================
-  // FUNGSI ADMIN - CRUD
+  // PERBAIKAN: gunakan item.id || item._id untuk MongoDB
   // ==========================================
+  const getItemId = (item) => item.id || item._id
+
   const handleDeleteArticle = async (id) => {
     if (!window.confirm('Yakin ingin menghapus berita ini?')) return
     try {
       const res = await fetch(`http://localhost:5000/api/articles/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
-      if (res.ok) { setArticles(articles.filter(a => a.id !== id)); showToast('Berita berhasil dihapus', 'success') }
+      if (res.ok) { setArticles(articles.filter(a => getItemId(a) !== id)); showToast('Berita berhasil dihapus', 'success') }
     } catch (err) { showToast('Gagal menghapus', 'error') }
   }
 
@@ -209,8 +243,11 @@ function App() {
     setAdminError(''); setShowModal(type)
   }
 
+  // PERBAIKAN: gunakan getItemId agar edit berfungsi di MongoDB
   const openEditForm = (type, item) => {
-    setIsEditMode(true); setCurrentEditId(item.id)
+    const itemId = getItemId(item)
+    if (!itemId) { showToast('Data tidak memiliki ID valid', 'error'); return }
+    setIsEditMode(true); setCurrentEditId(itemId)
     if (type === 'article') setFormData({ title: item.title || '', content: item.content || '', author: item.author || 'Admin Kelurahan', image_url: item.image_url || '' })
     if (type === 'official') setOfficialForm({ name: item.name || '', position: item.position || '' })
     if (type === 'stat') setStatForm({ category: item.category || '', value: item.value || '', year: item.year || new Date().getFullYear() })
@@ -220,15 +257,22 @@ function App() {
 
   const handleSaveArticle = async (e) => {
     e.preventDefault()
+    if (!formData.image_url || !formData.image_url.trim()) {
+      showToast('Gambar wajib diisi (upload file atau isi link)', 'error')
+      return
+    }
     setAdminLoading(true)
     try {
       const url = isEditMode ? `http://localhost:5000/api/articles/${currentEditId}` : 'http://localhost:5000/api/articles'
+      console.log('Mengirim data ke:', url)
+      console.log('Isi formData:', formData) 
       const res = await fetch(url, {
         method: isEditMode ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
         body: JSON.stringify(formData)
       })
-      if (res.ok) {
+      const data = await res.json()
+      if (res.ok && data.success) {
         showToast(isEditMode ? 'Berita diperbarui! ✏️' : 'Berita ditambahkan! 🎉', 'success')
         setShowModal(null)
         setIsEditMode(false)
@@ -236,8 +280,16 @@ function App() {
         const freshRes = await fetch('http://localhost:5000/api/articles')
         const freshData = await freshRes.json()
         if (freshData.success) setArticles(freshData.data)
-      } else { showToast('Gagal menyimpan', 'error') }
-    } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
+      } else { 
+        console.error(' Error dari Backend:', data)
+        showToast('Gagal: ' + (data.error || data.message || 'Cek console browser (F12)'), 'error') 
+      }
+    } catch (err) { 
+      console.error('❌ Error Jaringan:', err)
+      showToast('Terjadi kesalahan: ' + err.message, 'error') 
+    } finally { 
+      setAdminLoading(false) 
+    }
   }
 
   const handleAddOfficial = async (e) => {
@@ -253,15 +305,16 @@ function App() {
         headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
         body: JSON.stringify(officialForm)
       })
-      if (res.ok) {
-        showToast(isEditMode ? 'Perangkat diperbarui! ✏️' : 'Perangkat ditambahkan! 👨‍💼', 'success')
+      const data = await res.json()
+      if (res.ok && data.success) {
+        showToast(isEditMode ? 'Perangkat diperbarui! ️' : 'Perangkat ditambahkan! 👨‍💼', 'success')
         setShowModal(null)
         setIsEditMode(false)
         setCurrentEditId(null)
         const freshRes = await fetch('http://localhost:5000/api/profile/officials')
         const freshData = await freshRes.json()
         if (freshData.success) setOfficials(freshData.data)
-      } else { showToast('Gagal menyimpan', 'error') }
+      } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
     } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
   }
 
@@ -269,7 +322,7 @@ function App() {
     if (!window.confirm('Yakin ingin menghapus?')) return
     try {
       const res = await fetch(`http://localhost:5000/api/profile/officials/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
-      if (res.ok) { setOfficials(officials.filter(o => o.id !== id)); showToast('Perangkat dihapus', 'success') }
+      if (res.ok) { setOfficials(officials.filter(o => getItemId(o) !== id)); showToast('Perangkat dihapus', 'success') }
     } catch (err) { showToast('Gagal menghapus', 'error') }
   }
 
@@ -286,7 +339,8 @@ function App() {
         headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
         body: JSON.stringify(statForm)
       })
-      if (res.ok) {
+      const data = await res.json()
+      if (res.ok && data.success) {
         showToast(isEditMode ? 'Statistik diperbarui! ✏️' : 'Statistik ditambahkan! 📊', 'success')
         setShowModal(null)
         setIsEditMode(false)
@@ -294,7 +348,7 @@ function App() {
         const freshRes = await fetch('http://localhost:5000/api/stats/statistics')
         const freshData = await freshRes.json()
         if (freshData.success) setStatistics(freshData.data)
-      } else { showToast('Gagal menyimpan', 'error') }
+      } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
     } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
   }
 
@@ -302,24 +356,32 @@ function App() {
     if (!window.confirm('Yakin ingin menghapus?')) return
     try {
       const res = await fetch(`http://localhost:5000/api/stats/statistics/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
-      if (res.ok) { setStatistics(statistics.filter(s => s.id !== id)); showToast('Statistik dihapus', 'success') }
+      if (res.ok) { setStatistics(statistics.filter(s => getItemId(s) !== id)); showToast('Statistik dihapus', 'success') }
     } catch (err) { showToast('Gagal menghapus', 'error') }
   }
 
+  // PERBAIKAN: handleAddGallery dengan validasi gambar + cek data.success
   const handleAddGallery = async (e) => {
     e.preventDefault()
+    if (!galleryForm.image_url || !galleryForm.image_url.trim()) {
+      showToast('Gambar wajib diisi (upload file atau isi link)', 'error')
+      return
+    }
     setAdminLoading(true)
     try {
       const url = isEditMode 
         ? `http://localhost:5000/api/stats/galleries/${currentEditId}` 
         : 'http://localhost:5000/api/stats/galleries'
       const method = isEditMode ? 'PUT' : 'POST'
+      console.log('Gallery - Mengirim ke:', url)
+      console.log('Gallery - Data:', galleryForm)
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
         body: JSON.stringify(galleryForm)
       })
-      if (res.ok) {
+      const data = await res.json()
+      if (res.ok && data.success) {
         showToast(isEditMode ? 'Foto diperbarui! ✏️' : 'Foto ditambahkan! 🖼️', 'success')
         setShowModal(null)
         setIsEditMode(false)
@@ -327,15 +389,21 @@ function App() {
         const freshRes = await fetch('http://localhost:5000/api/stats/galleries')
         const freshData = await freshRes.json()
         if (freshData.success) setGalleries(freshData.data)
-      } else { showToast('Gagal menyimpan', 'error') }
-    } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
+      } else { 
+        console.error('❌ Gallery Error:', data)
+        showToast('Gagal: ' + (data.error || data.message || ''), 'error') 
+      }
+    } catch (err) { 
+      console.error('❌ Gallery Network Error:', err)
+      showToast('Terjadi kesalahan: ' + err.message, 'error') 
+    } finally { setAdminLoading(false) }
   }
 
   const handleDeleteGallery = async (id) => {
     if (!window.confirm('Yakin ingin menghapus?')) return
     try {
       const res = await fetch(`http://localhost:5000/api/stats/galleries/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
-      if (res.ok) { setGalleries(galleries.filter(g => g.id !== id)); showToast('Foto dihapus', 'success') }
+      if (res.ok) { setGalleries(galleries.filter(g => getItemId(g) !== id)); showToast('Foto dihapus', 'success') }
     } catch (err) { showToast('Gagal menghapus', 'error') }
   }
 
@@ -347,14 +415,12 @@ function App() {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
         body: JSON.stringify(profileForm)
       })
-      if (res.ok) { setVillageInfo(profileForm); showToast('Profil diperbarui! 🏛️', 'success') }
-      else { showToast('Gagal menyimpan', 'error') }
+      const data = await res.json()
+      if (res.ok && data.success) { setVillageInfo(profileForm); showToast('Profil diperbarui! ️', 'success') }
+      else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
     } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
   }
 
-  // ==========================================
-  // RENDER: LOGIN PAGE
-  // ==========================================
   if (adminView === 'login') {
     return (
       <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
@@ -367,7 +433,7 @@ function App() {
             <p style={{ color: '#64748b', fontSize: '14px' }}>Kelurahan Woloan Dua, Kota Tomohon</p>
           </div>
           {adminError && (
-            <div style={{ background: '#fee2e2', color: '#dc2626', padding: '14px', borderRadius: '12px', marginBottom: '20px', fontSize: '14px', borderLeft: '4px solid #dc2626', animation: 'shake 0.5s' }}>⚠️ {adminError}</div>
+            <div style={{ background: '#fee2e2', color: '#dc2626', padding: '14px', borderRadius: '12px', marginBottom: '20px', fontSize: '14px', borderLeft: '4px solid #dc2626', animation: 'shake 0.5s' }}>️ {adminError}</div>
           )}
           <form onSubmit={handleAdminLogin}>
             <div style={{ marginBottom: '20px' }}>
@@ -379,7 +445,7 @@ function App() {
               <input name="password" type="password" placeholder="Masukkan password" required style={{ width: '100%', padding: '14px 16px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box', outline: 'none', transition: 'all 0.3s' }} onFocus={(e) => e.target.style.borderColor = '#2d8a5e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
             </div>
             <button type="submit" disabled={adminLoading} style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 10px 25px rgba(45, 138, 94, 0.4)', transition: 'all 0.3s', transform: adminLoading ? 'scale(0.98)' : 'scale(1)' }}>
-              {adminLoading ? ' Memproses...' : 'Masuk ke Dashboard'}
+              {adminLoading ? '⏳ Memproses...' : 'Masuk ke Dashboard'}
             </button>
           </form>
           <button onClick={() => setAdminView('home')} style={{ width: '100%', marginTop: '15px', padding: '12px', background: 'transparent', border: '2px solid #e2e8f0', borderRadius: '12px', color: '#64748b', cursor: 'pointer', fontSize: '14px', fontWeight: '600', transition: 'all 0.3s' }} onMouseEnter={(e) => { e.target.style.background = '#f0fdf4'; e.target.style.borderColor = '#2d8a5e' }} onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.borderColor = '#e2e8f0' }}>
@@ -396,20 +462,17 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: ADMIN LAYOUT
-  // ==========================================
   const adminMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', color: '#2d8a5e' },
     { id: 'profile', label: 'Profil Kelurahan', icon: '🏛️', color: '#10b981' },
     { id: 'officials', label: 'Perangkat Desa', icon: '👨‍💼', color: '#059669' },
     { id: 'stats', label: 'Statistik', icon: '📈', color: '#14b8a6' },
-    { id: 'galleries', label: 'Galeri Foto', icon: '🖼️', color: '#0d9488' },
-    { id: 'map', label: 'Peta Desa', icon: '️', color: '#059669' }, 
+    { id: 'galleries', label: 'Galeri Foto', icon: '️🖼️', color: '#0d9488' },
+    { id: 'map', label: 'Peta Desa', icon: '️🗺️', color: '#059669' }, 
     { id: 'articles', label: 'Berita', icon: '📰', color: '#1e5d3f' }
   ]
 
-  const AdminLayout = ({ children, title }) => (
+  adminLayoutFn.current = ({ children, title }) => (
     <div style={{ minHeight: '100vh', background: darkMode ? '#0f172a' : '#f1f5f9', display: 'flex', transition: 'all 0.3s' }}>
       <aside style={{ 
         width: sidebarCollapsed ? '80px' : '280px', 
@@ -465,7 +528,7 @@ function App() {
             <h2 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>{title}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <input type="text" placeholder=" Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            <input type="text" placeholder="🔍 Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
               style={{ padding: '10px 16px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : '#f8fafc', color: darkMode ? 'white' : '#1e293b', outline: 'none', width: '200px', fontSize: '14px' }} />
             <button onClick={() => setDarkMode(!darkMode)} style={{ 
               width: '42px', height: '42px', borderRadius: '12px', border: 'none',
@@ -539,28 +602,42 @@ function App() {
         </header>
         <div style={{ padding: '30px' }}>{children}</div>
       </div>
+
+      {renderModal()}
+
+      <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {toasts.map(toast => (
+          <div key={toast.id} style={{
+            padding: '16px 24px', borderRadius: '12px', color: 'white', fontWeight: '600', fontSize: '14px',
+            background: toast.type === 'success' ? 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)' : toast.type === 'error' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)', animation: 'slideInRight 0.4s', minWidth: '250px'
+          }}>
+            {toast.type === 'success' ? '✅' : toast.type === 'error' ? '' : 'ℹ️'} {toast.message}
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
     </div>
   )
 
-  // ==========================================
-  // RENDER: DASHBOARD
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'dashboard') {
     const stats = [
-      { label: 'Total Berita', value: animatedStats.articles, icon: '📰', color: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', bg: '#dcfce7', change: '+12%' },
+      { label: 'Total Berita', value: animatedStats.articles, icon: '', color: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', bg: '#dcfce7', change: '+12%' },
       { label: 'Perangkat Desa', value: animatedStats.officials, icon: '👨‍💼', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', bg: '#d1fae5', change: '+5%' },
-      { label: 'Data Statistik', value: animatedStats.stats, icon: '', color: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', bg: '#ccfbf1', change: '+8%' },
-      { label: 'Foto Galeri', value: animatedStats.galleries, icon: '️', color: 'linear-gradient(135deg, #059669 0%, #047857 100%)', bg: '#a7f3d0', change: '+15%' }
+      { label: 'Data Statistik', value: animatedStats.stats, icon: '📊', color: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', bg: '#ccfbf1', change: '+8%' },
+      { label: 'Foto Galeri', value: animatedStats.galleries, icon: '🖼️', color: 'linear-gradient(135deg, #059669 0%, #047857 100%)', bg: '#a7f3d0', change: '+15%' }
     ]
     return (
       <AdminLayout title="Dashboard">
         <div style={{ background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '24px', padding: '40px', marginBottom: '30px', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(45, 138, 94, 0.3)' }}>
           <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '100%', backgroundImage: `url(${gunung})`, backgroundSize: 'cover', opacity: 0.15 }}></div>
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <h1 style={{ fontSize: '36px', marginBottom: '10px', fontWeight: '800' }}>Selamat Datang, {adminName}! </h1>
+            <h1 style={{ fontSize: '36px', marginBottom: '10px', fontWeight: '800' }}>Selamat Datang, {adminName}! 👋</h1>
             <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '25px' }}>Kelola konten website Kelurahan Woloan Dua</p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <button onClick={() => setAdminPage('articles')} style={{ padding: '14px 28px', background: 'white', color: '#2d8a5e', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }} onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}> Kelola Berita</button>
+              <button onClick={() => setAdminPage('articles')} style={{ padding: '14px 28px', background: 'white', color: '#2d8a5e', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }} onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}>📰 Kelola Berita</button>
               <button onClick={() => setAdminPage('profile')} style={{ padding: '14px 28px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }} onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'} onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}>🏛️ Edit Profil</button>
             </div>
           </div>
@@ -589,8 +666,8 @@ function App() {
               {[
                 { label: 'Tambah Berita', icon: '📰', color: '#2d8a5e', action: () => openAddForm('article') },
                 { label: 'Tambah Perangkat', icon: '👨‍💼', color: '#10b981', action: () => openAddForm('official') },
-                { label: 'Tambah Statistik', icon: '📈', color: '#14b8a6', action: () => openAddForm('stat') },
-                { label: 'Tambah Foto', icon: '🖼️', color: '#059669', action: () => openAddForm('gallery') }
+                { label: 'Tambah Statistik', icon: '', color: '#14b8a6', action: () => openAddForm('stat') },
+                { label: 'Tambah Foto', icon: '️', color: '#059669', action: () => openAddForm('gallery') }
               ].map((action, i) => (
                 <button key={i} onClick={action.action} style={{ padding: '20px', background: darkMode ? '#0f172a' : '#f8fafc', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s', display: 'flex', alignItems: 'center', gap: '15px' }} onMouseEnter={(e) => { e.target.style.borderColor = action.color; e.target.style.transform = 'translateY(-3px)' }} onMouseLeave={(e) => { e.target.style.borderColor = darkMode ? '#334155' : '#e2e8f0'; e.target.style.transform = 'translateY(0)' }}>
                   <div style={{ width: '45px', height: '45px', background: action.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>{action.icon}</div>
@@ -600,13 +677,13 @@ function App() {
             </div>
           </div>
           <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
-            <h3 style={{ color: darkMode ? 'white' : '#1e293b', marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}> Status Sistem</h3>
+            <h3 style={{ color: darkMode ? 'white' : '#1e293b', marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}>📡 Status Sistem</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {[
                 { label: 'Server Backend', status: 'Online', color: '#10b981', icon: '✅' },
                 { label: 'Database MySQL', status: 'Terhubung', color: '#10b981', icon: '🗄️' },
                 { label: 'Kunjungan Hari Ini', status: visitorCount, color: '#2d8a5e', icon: '👥' },
-                { label: 'Total Konten', status: articles.length + statistics.length + galleries.length, color: '#059669', icon: '' }
+                { label: 'Total Konten', status: articles.length + statistics.length + galleries.length, color: '#059669', icon: '📁' }
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: darkMode ? '#0f172a' : '#f8fafc', borderRadius: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -623,9 +700,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: KELOLA PROFIL
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'profile') {
     return (
       <AdminLayout title="Kelola Profil Kelurahan">
@@ -653,7 +727,7 @@ function App() {
               <input type="text" value={profileForm.address || ''} onChange={e => setProfileForm({...profileForm, address: e.target.value})} required style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }} />
             </div>
             <div style={{ marginBottom: '25px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📝 Deskripsi</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}> Deskripsi</label>
               <textarea value={profileForm.description || ''} onChange={e => setProfileForm({...profileForm, description: e.target.value})} required rows="5" style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '15px', resize: 'vertical' }}></textarea>
             </div>
             <button type="submit" disabled={adminLoading} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.4)' }}>
@@ -665,9 +739,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: KELOLA PERANGKAT
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'officials') {
     const filteredOfficials = sortedOfficials.filter(o => o.name.toLowerCase().includes(searchQuery.toLowerCase()) || o.position.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
@@ -681,13 +752,13 @@ function App() {
         </div>
         {filteredOfficials.length === 0 ? (
           <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
-            <div style={{ fontSize: '60px', marginBottom: '15px' }}>👨‍</div>
+            <div style={{ fontSize: '60px', marginBottom: '15px' }}>👨‍💼</div>
             <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>{searchQuery ? 'Tidak ada hasil pencarian' : 'Belum ada data perangkat'}</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
             {filteredOfficials.map((official) => (
-              <div key={official.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
+              <div key={getItemId(official)} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
                 <div style={{ position: 'absolute', top: 0, right: 0, width: '80px', height: '80px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '0 0 0 80px', opacity: 0.1 }}></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                   <div style={{ width: '55px', height: '55px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: 'bold' }}>{official.name.charAt(0).toUpperCase()}</div>
@@ -698,7 +769,7 @@ function App() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => openEditForm('official', official)} style={{ flex: 1, padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
-                  <button onClick={() => handleDeleteOfficial(official.id)} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
+                  <button onClick={() => handleDeleteOfficial(getItemId(official))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
                 </div>
               </div>
             ))}
@@ -708,9 +779,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: KELOLA STATISTIK
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'stats') {
     const filteredStats = statistics.filter(s => s.category.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
@@ -730,14 +798,14 @@ function App() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
             {filteredStats.map((stat) => (
-              <div key={stat.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s', textAlign: 'center' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
+              <div key={getItemId(stat)} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s', textAlign: 'center' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
                 <div style={{ width: '70px', height: '70px', margin: '0 auto 15px', background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>📊</div>
                 <h3 style={{ color: darkMode ? 'white' : '#1e293b', fontSize: '32px', margin: '0 0 8px', fontWeight: '800' }}>{stat.value}</h3>
                 <p style={{ color: '#14b8a6', margin: '0 0 8px', fontSize: '14px', fontWeight: '700' }}>{stat.category}</p>
                 <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '0 0 20px', fontSize: '12px' }}>Tahun {stat.year}</p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => openEditForm('stat', stat)} style={{ flex: 1, padding: '10px', background: '#14b8a6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
-                  <button onClick={() => handleDeleteStat(stat.id)} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️</button>
+                  <button onClick={() => handleDeleteStat(getItemId(stat))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
                 </div>
               </div>
             ))}
@@ -747,9 +815,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: KELOLA GALERI
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'galleries') {
     const filteredGalleries = galleries.filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
@@ -769,7 +834,7 @@ function App() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
             {filteredGalleries.map((photo, i) => (
-              <div key={photo.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
+              <div key={getItemId(photo)} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
                 <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
                   <img src={photo.image_url} alt={photo.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'} onMouseLeave={(e) => e.target.style.transform = 'scale(1)'} />
                   <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>#{i + 1}</div>
@@ -778,7 +843,7 @@ function App() {
                   <h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 15px', fontSize: '15px', fontWeight: '700' }}>{photo.title}</h4>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => openEditForm('gallery', photo)} style={{ flex: 1, padding: '10px', background: '#059669', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
-                    <button onClick={() => handleDeleteGallery(photo.id)} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
+                    <button onClick={() => handleDeleteGallery(getItemId(photo))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
                   </div>
                 </div>
               </div>
@@ -789,9 +854,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: KELOLA PETA DESA
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'map') {
     return (
       <AdminLayout title="Kelola Peta Desa">
@@ -813,14 +875,15 @@ function App() {
                   headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
                   body: JSON.stringify(mapForm)
                 })
-                if (res.ok) {
+                const data = await res.json()
+                if (res.ok && data.success) {
                   setMapCoordinates(mapForm)
-                  showToast('Peta berhasil diperbarui! ️', 'success')
-                } else { showToast('Gagal menyimpan', 'error') }
+                  showToast('Peta berhasil diperbarui! 📍', 'success')
+                } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
               } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
             }}>
               <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📍 Alamat Lengkap</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}> Alamat Lengkap</label>
                 <textarea value={mapForm.address || ''} onChange={e => setMapForm({...mapForm, address: e.target.value})} required rows="3" style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '14px', resize: 'vertical' }}></textarea>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '18px' }}>
@@ -838,10 +901,10 @@ function App() {
                 <input type="number" min="1" max="20" value={mapForm.zoom || 15} onChange={e => setMapForm({...mapForm, zoom: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} />
               </div>
               <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #bbf7d0' }}>
-                <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}> <strong>Cara dapat koordinat:</strong><br />1. Buka <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2d8a5e' }}>Google Maps</a><br />2. Klik kanan di lokasi kelurahan<br />3. Copy angka koordinat yang muncul</p>
+                <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>💡 <strong>Cara dapat koordinat:</strong><br />1. Buka <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2d8a5e' }}>Google Maps</a><br />2. Klik kanan di lokasi kelurahan<br />3. Copy angka koordinat yang muncul</p>
               </div>
               <button type="submit" disabled={adminLoading} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(5, 150, 105, 0.4)' }}>
-                {adminLoading ? '⏳ Menyimpan...' : '💾 Simpan Koordinat'}
+                {adminLoading ? ' Menyimpan...' : '💾 Simpan Koordinat'}
               </button>
             </form>
           </div>
@@ -866,9 +929,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: KELOLA BERITA
-  // ==========================================
   if (adminView === 'admin' && adminPage === 'articles') {
     const filteredArticles = articles.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
@@ -888,15 +948,15 @@ function App() {
         ) : (
           <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
             {filteredArticles.map((article, i) => (
-              <div key={article.id} style={{ padding: '20px 25px', display: 'flex', alignItems: 'center', gap: '20px', borderBottom: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, transition: 'all 0.3s' }} onMouseEnter={(e) => e.target.style.background = darkMode ? '#0f172a' : '#f0fdf4'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
+              <div key={getItemId(article)} style={{ padding: '20px 25px', display: 'flex', alignItems: 'center', gap: '20px', borderBottom: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, transition: 'all 0.3s' }} onMouseEnter={(e) => e.target.style.background = darkMode ? '#0f172a' : '#f0fdf4'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
                 <div style={{ width: '50px', height: '50px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '18px', flexShrink: 0 }}>{i + 1}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 5px', fontSize: '16px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.title}</h4>
                   <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '13px' }}>✍️ {article.author || 'Admin'} • 📅 {article.created_at ? new Date(article.created_at).toLocaleDateString('id-ID') : '-'}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                  <button onClick={() => openEditForm('article', article)} style={{ padding: '10px 18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
-                  <button onClick={() => handleDeleteArticle(article.id)} style={{ padding: '10px 18px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
+                  <button onClick={() => openEditForm('article', article)} style={{ padding: '10px 18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>️ Edit</button>
+                  <button onClick={() => handleDeleteArticle(getItemId(article))} style={{ padding: '10px 18px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
                 </div>
               </div>
             ))}
@@ -906,29 +966,28 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: MODAL FORM
-  // ==========================================
-  if (showModal) {
+  function renderModal() {
+    if (!showModal) return null
     const modalConfig = {
       article: { title: isEditMode ? '✏️ Edit Berita' : '➕ Tambah Berita Baru', icon: '📰', color: '#2d8a5e', data: formData, setData: setFormData, onSave: handleSaveArticle, fields: [
         { name: 'title', label: 'Judul Berita *', type: 'text', required: true },
         { name: 'author', label: 'Penulis', type: 'text', required: false },
-        { name: 'image_url', label: 'URL Gambar (Opsional)', type: 'url', required: false, preview: true },
+        { name: 'image_url', label: 'Gambar Berita *', type: 'image', required: true, preview: true },
         { name: 'content', label: 'Isi Berita *', type: 'textarea', required: true, rows: 8 }
       ]},
       official: { title: isEditMode ? '✏️ Edit Perangkat' : '➕ Tambah Perangkat Baru', icon: '👨‍💼', color: '#10b981', data: officialForm, setData: setOfficialForm, onSave: handleAddOfficial, fields: [
         { name: 'name', label: 'Nama Lengkap *', type: 'text', required: true },
         { name: 'position', label: 'Jabatan *', type: 'select', required: true, options: ['Lurah', 'Sekretaris Lurah', 'Kepala Seksi Pemerintahan', 'Kepala Seksi Pelayanan', 'Kepala Seksi Kesejahteraan', 'Ketua RW', 'Ketua RT', 'Lainnya'] }
       ]},
-      stat: { title: isEditMode ? '✏️ Edit Statistik' : '➕ Tambah Statistik Baru', icon: '📈', color: '#14b8a6', data: statForm, setData: setStatForm, onSave: handleAddStat, fields: [
+      stat: { title: isEditMode ? '️ Edit Statistik' : '➕ Tambah Statistik Baru', icon: '📈', color: '#14b8a6', data: statForm, setData: setStatForm, onSave: handleAddStat, fields: [
         { name: 'category', label: 'Kategori *', type: 'text', required: true, placeholder: 'Contoh: Jumlah Penduduk' },
         { name: 'value', label: 'Nilai *', type: 'text', required: true, placeholder: 'Contoh: 3.245' },
         { name: 'year', label: 'Tahun *', type: 'number', required: true }
       ]},
+      // PERBAIKAN: gallery sekarang pakai type 'image' agar bisa upload file (sama seperti article)
       gallery: { title: isEditMode ? '✏️ Edit Foto' : '➕ Tambah Foto Baru', icon: '🖼️', color: '#059669', data: galleryForm, setData: setGalleryForm, onSave: handleAddGallery, fields: [
         { name: 'title', label: 'Judul Foto *', type: 'text', required: true },
-        { name: 'image_url', label: 'URL Gambar *', type: 'url', required: true, preview: true }
+        { name: 'image_url', label: 'Gambar Foto *', type: 'image', required: true, preview: true }
       ]}
     }
     const config = modalConfig[showModal]
@@ -940,13 +999,35 @@ function App() {
               <div style={{ width: '55px', height: '55px', background: config.color, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{config.icon}</div>
               <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>{config.title}</h3>
             </div>
-            <button onClick={() => setShowModal(null)} style={{ width: '40px', height: '40px', background: darkMode ? '#334155' : '#f1f5f9', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '20px', color: darkMode ? 'white' : '#64748b' }}>✕</button>
+            <button onClick={() => setShowModal(null)} style={{ width: '40px', height: '40px', background: darkMode ? '#334155' : '#f1f5f9', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '20px', color: darkMode ? 'white' : '#64748b' }}></button>
           </div>
           <form onSubmit={config.onSave}>
             {config.fields.map(field => (
               <div key={field.name} style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>{field.label}</label>
-                {field.type === 'textarea' ? (
+                {field.type === 'image' ? (
+                  <div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                      {[{ id: 'upload', label: ' Upload File' }, { id: 'url', label: '🔗 Pakai Link' }].map(m => (
+                        <button key={m.id} type="button" onClick={() => setImageMode(m.id)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: `2px solid ${imageMode === m.id ? config.color : (darkMode ? '#334155' : '#e2e8f0')}`, background: imageMode === m.id ? config.color : 'transparent', color: imageMode === m.id ? 'white' : (darkMode ? 'white' : '#475569'), fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>{m.label}</button>
+                      ))}
+                    </div>
+                    {imageMode === 'upload' ? (
+                      <label style={{ display: 'block', padding: '22px', border: `2px dashed ${darkMode ? '#334155' : '#cbd5e1'}`, borderRadius: '12px', textAlign: 'center', cursor: 'pointer', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '14px', background: darkMode ? '#0f172a' : '#f8fafc' }}>
+                        {imageProcessing ? '⏳ Memproses gambar...' : '📤 Klik untuk memilih gambar (JPG/PNG/WEBP, maks 10 MB)'}
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { handleImageFile(e.target.files[0], config.setData, config.data, field.name); e.target.value = '' }} />
+                      </label>
+                    ) : (
+                      <input type="url" value={(config.data[field.name] || '').startsWith('data:') ? '' : (config.data[field.name] || '')} onChange={e => config.setData({...config.data, [field.name]: e.target.value})} placeholder="https://contoh.com/gambar.jpg" style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }} />
+                    )}
+                    {!config.data[field.name] && (
+                      <p style={{ margin: '8px 0 0', color: '#ef4444', fontSize: '12px', fontWeight: '600' }}>* Gambar wajib diisi</p>
+                    )}
+                    {config.data[field.name] && (
+                      <button type="button" onClick={() => config.setData({...config.data, [field.name]: ''})} style={{ marginTop: '8px', padding: '6px 12px', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>🗑️ Hapus gambar</button>
+                    )}
+                  </div>
+                ) : field.type === 'textarea' ? (
                   <textarea value={config.data[field.name] || ''} onChange={e => config.setData({...config.data, [field.name]: e.target.value})} required={field.required} rows={field.rows || 5} style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '15px', resize: 'vertical' }}></textarea>
                 ) : field.type === 'select' ? (
                   <select value={config.data[field.name] || ''} onChange={e => config.setData({...config.data, [field.name]: e.target.value})} required={field.required} style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }}>
@@ -977,9 +1058,6 @@ function App() {
     )
   }
 
-  // ==========================================
-  // RENDER: WEBSITE PUBLIK
-  // ==========================================
   return (
     <div className="landing-page">
       <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
@@ -1017,7 +1095,7 @@ function App() {
         </div>
         <div className="scroll-indicator"><div className="mouse"><div className="wheel"></div></div><p>Scroll Down</p></div>
         <div className="visitor-widget"><div className="visitor-icon"></div><div className="visitor-info"><span className="visitor-count">{visitorCount}</span><span className="visitor-label">Kunjungan Hari Ini</span></div></div>
-        <div className="complaint-widget"><button className="btn-complaint"><span className="complaint-icon">📢</span><span>Pengaduan</span></button><button className="btn-accessibility">♿</button></div>
+        <div className="complaint-widget"><button className="btn-complaint"><span className="complaint-icon"></span><span>Pengaduan</span></button><button className="btn-accessibility">♿</button></div>
       </section>
 
       <section className="quick-menu" id="quick-menu">
@@ -1025,10 +1103,10 @@ function App() {
           <h2 className="section-title">Layanan Cepat</h2>
           <div className="quick-grid">
             {[
-              { icon: '️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah', link: '#peta' },
+              { icon: '🗺️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah', link: '#peta' },
               { icon: '📋', title: 'Layanan Surat', desc: 'Ajukan surat online', link: '#layanan' },
               { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan', link: '#layanan' },
-              { icon: '', title: 'Kontak Darurat', desc: 'Nomor penting', link: '#profil' },
+              { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting', link: '#profil' },
               { icon: '📊', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
               { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik', link: '#ppid' },
               { icon: '📰', title: 'Berita', desc: 'Kabar terbaru', link: '#berita' },
@@ -1042,11 +1120,11 @@ function App() {
         <div className="container">
           <h2 className="section-title">Profil Kelurahan</h2>
           {profileLoading ? (<p style={{ textAlign: 'center', padding: '20px' }}>Memuat profil...</p>) : villageInfo ? (
-            <div className="info-grid"><div className="info-card" style={{ gridColumn: '1 / -1' }}><h3>️ {villageInfo.name}</h3><p>{villageInfo.description}</p><p style={{ marginTop: '15px' }}><strong> Alamat:</strong> {villageInfo.address}</p><p><strong>📞 Telepon:</strong> {villageInfo.phone}</p></div></div>
+            <div className="info-grid"><div className="info-card" style={{ gridColumn: '1 / -1' }}><h3>🏛️ {villageInfo.name}</h3><p>{villageInfo.description}</p><p style={{ marginTop: '15px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p><p><strong>📞 Telepon:</strong> {villageInfo.phone}</p></div></div>
           ) : (<p style={{ textAlign: 'center', padding: '20px' }}>Data profil belum tersedia.</p>)}
           <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>Perangkat Kelurahan</h3>
           {sortedOfficials.length === 0 ? (<p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>) : (
-            <div className="info-grid">{sortedOfficials.map((official, index) => (<div key={official.id || index} className="info-card"><h3>{official.name}</h3><p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>{official.position}</p></div>))}</div>
+            <div className="info-grid">{sortedOfficials.map((official, index) => (<div key={getItemId(official) || index} className="info-card"><h3>{official.name}</h3><p style={{ color: '#2d8a5e', fontWeight: 'bold', marginTop: '10px' }}>{official.position}</p></div>))}</div>
           )}
         </div>
       </section>
@@ -1055,7 +1133,7 @@ function App() {
         <div className="container">
           <h2 className="section-title">Infografis & Statistik</h2>
           {statsLoading ? (<p style={{ textAlign: 'center', padding: '20px' }}>Memuat data...</p>) : statistics.length === 0 ? (<p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data statistik.</p>) : (
-            <div className="info-grid">{statistics.map((stat, index) => (<div key={stat.id || index} className="info-card" style={{ textAlign: 'center' }}><h3 style={{ fontSize: '2rem', color: '#2d8a5e', marginBottom: '10px' }}>{stat.value}</h3><p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{stat.category}</p><p style={{ fontSize: '0.85rem', color: '#666' }}>Tahun {stat.year}</p></div>))}</div>
+            <div className="info-grid">{statistics.map((stat, index) => (<div key={getItemId(stat) || index} className="info-card" style={{ textAlign: 'center' }}><h3 style={{ fontSize: '2rem', color: '#2d8a5e', marginBottom: '10px' }}>{stat.value}</h3><p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{stat.category}</p><p style={{ fontSize: '0.85rem', color: '#666' }}>Tahun {stat.year}</p></div>))}</div>
           )}
         </div>
       </section>
@@ -1064,7 +1142,7 @@ function App() {
         <div className="container">
           <h2 className="section-title">Galeri Kegiatan</h2>
           {galleries.length === 0 ? (<p style={{ textAlign: 'center', padding: '20px' }}>Belum ada foto kegiatan.</p>) : (
-            <div className="info-grid">{galleries.map((photo, index) => (<div key={photo.id || index} className="info-card" style={{ padding: '10px' }}><img src={photo.image_url} alt={photo.title} style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} /><h3 style={{ fontSize: '1rem', textAlign: 'center' }}>{photo.title}</h3></div>))}</div>
+            <div className="info-grid">{galleries.map((photo, index) => (<div key={getItemId(photo) || index} className="info-card" style={{ padding: '10px' }}><img src={photo.image_url} alt={photo.title} style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} /><h3 style={{ fontSize: '1rem', textAlign: 'center' }}>{photo.title}</h3></div>))}</div>
           )}
         </div>
       </section>
@@ -1084,21 +1162,21 @@ function App() {
         <div className="container">
           <h2 className="section-title">Berita Terbaru</h2>
           {loading ? (<p style={{ textAlign: 'center', padding: '20px' }}>Memuat berita...</p>) : articles.length === 0 ? (<p style={{ textAlign: 'center', padding: '20px' }}>Belum ada berita yang dipublikasikan.</p>) : (
-            <div className="info-grid">{articles.slice(0, 3).map((article, index) => (<div key={article.id || index} className="info-card"><h3>📰 {article.title}</h3><p>{article.content.substring(0, 100)}...</p><p style={{ fontSize: '0.8rem', color: '#666', marginTop: '10px' }}>Oleh: {article.author || 'Admin'}</p><button onClick={() => openArticleModal(article)} style={{ background: 'none', border: 'none', color: '#2d8a5e', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', padding: 0, marginTop: '10px' }}>Baca Selengkapnya →</button></div>))}</div>
+            <div className="info-grid">{articles.slice(0, 3).map((article, index) => (<div key={getItemId(article) || index} className="info-card"><h3>📰 {article.title}</h3><p>{article.content.substring(0, 100)}...</p><p style={{ fontSize: '0.8rem', color: '#666', marginTop: '10px' }}>Oleh: {article.author || 'Admin'}</p><button onClick={() => openArticleModal(article)} style={{ background: 'none', border: 'none', color: '#2d8a5e', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', padding: 0, marginTop: '10px' }}>Baca Selengkapnya →</button></div>))}</div>
           )}
         </div>
       </section>
 
       <section className="info-section" id="peta" style={{ backgroundColor: '#f0fdf4' }}>
         <div className="container">
-          <h2 className="section-title">📍 Peta Lokasi Kelurahan</h2>
+          <h2 className="section-title"> Peta Lokasi Kelurahan</h2>
           <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '30px', fontSize: '16px' }}>{mapCoordinates.address}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px', alignItems: 'start' }}>
             <div style={{ height: '450px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(45, 138, 94, 0.15)', border: '3px solid #2d8a5e', position: 'relative' }}>
               <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCoordinates.lng - 0.01}%2C${mapCoordinates.lat - 0.01}%2C${mapCoordinates.lng + 0.01}%2C${mapCoordinates.lat + 0.01}&layer=mapnik&marker=${mapCoordinates.lat}%2C${mapCoordinates.lng}`} style={{ width: '100%', height: '100%', border: 'none' }} title="Peta Kelurahan Woloan Dua"></iframe>
             </div>
             <div style={{ background: 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-              <h3 style={{ color: '#2d8a5e', marginTop: 0, fontSize: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '28px' }}>📍</span> Informasi Lokasi</h3>
+              <h3 style={{ color: '#2d8a5e', marginTop: 0, fontSize: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '28px' }}></span> Informasi Lokasi</h3>
               <div style={{ marginBottom: '20px' }}>
                 <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 5px', fontWeight: '600' }}>ALAMAT LENGKAP</p>
                 <p style={{ color: '#1e293b', fontSize: '15px', margin: 0, lineHeight: '1.6' }}>{mapCoordinates.address}</p>
@@ -1133,12 +1211,12 @@ function App() {
         </div>
       </section>
 
-      {selectedArticle && (<div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={closeArticleModal}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }} onClick={(e) => e.stopPropagation()}><button onClick={closeArticleModal} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}></button><h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}> {selectedArticle.title}</h2><p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>Oleh: {selectedArticle.author || 'Admin'}</p><div style={{ lineHeight: '1.6' }}>{selectedArticle.content}</div></div></div>)}
+      {selectedArticle && (<div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={closeArticleModal}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }} onClick={(e) => e.stopPropagation()}><button onClick={closeArticleModal} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>✕</button><h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>📰 {selectedArticle.title}</h2><p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>Oleh: {selectedArticle.author || 'Admin'}</p><div style={{ lineHeight: '1.6' }}>{selectedArticle.content}</div></div></div>)}
 
       <footer className="footer">
         <div className="container">
           <div className="footer-grid">
-            <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 0431-123456<br />️ kelurahan.woloandua@gmail.com</p></div>
+            <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p></div>
             <div className="footer-col"><h4>Menu Cepat</h4><ul><li><a href="#profil">Profil Kelurahan</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#berita">Berita</a></li></ul></div>
             <div className="footer-col"><h4>Ikuti Kami</h4><div className="social-links"><a href="#">📘 Facebook</a><a href="#">📷 Instagram</a><a href="#">▶ YouTube</a></div></div>
           </div>
