@@ -3,6 +3,31 @@ import './App.css'
 import gunung from './assets/gunung.png'
 import tomohon from './assets/tomohon.png'
 
+// ==========================================
+// PENGATURAN LAYANAN PUBLIK
+// ==========================================
+const SERVICE_INFO = {
+  jam: 'Senin – Jumat, 08.00 – 16.00 WITA'
+}
+
+const LETTER_TYPES = {
+  'Surat Keterangan Domisili': ['Fotokopi KTP', 'Fotokopi Kartu Keluarga (KK)', 'Surat pengantar RT/RW atau Kepala Lingkungan'],
+  'Surat Keterangan Usaha': ['Fotokopi KTP', 'Fotokopi Kartu Keluarga (KK)', 'Surat pengantar RT/RW atau Kepala Lingkungan', 'Foto tempat usaha'],
+  'Surat Keterangan Tidak Mampu': ['Fotokopi KTP', 'Fotokopi Kartu Keluarga (KK)', 'Surat pengantar RT/RW atau Kepala Lingkungan'],
+  'Surat Pengantar SKCK': ['Fotokopi KTP', 'Fotokopi Kartu Keluarga (KK)', 'Pas foto 4x6'],
+  'Surat Keterangan Kematian': ['KTP almarhum/almarhumah', 'Fotokopi Kartu Keluarga (KK)', 'Keterangan kematian dari rumah sakit/dokter/Kepala Lingkungan', 'KTP pelapor'],
+  'Surat Pengantar Nikah': ['Fotokopi KTP calon pengantin', 'Fotokopi Kartu Keluarga (KK)', 'Fotokopi akta kelahiran', 'Pas foto', 'Surat pengantar RT/RW atau Kepala Lingkungan'],
+  'Surat Lainnya': ['Fotokopi KTP', 'Fotokopi Kartu Keluarga (KK)', 'Dokumen pendukung sesuai keperluan']
+}
+
+const COMPLAINT_CATEGORIES = [
+  { label: 'Infrastruktur', icon: '🛣️' },
+  { label: 'Kebersihan & Lingkungan', icon: '️' },
+  { label: 'Keamanan & Ketertiban', icon: '🛡️' },
+  { label: 'Pelayanan Publik', icon: '🏛️' },
+  { label: 'Lainnya', icon: '' }
+]
+
 function App() {
   // ==========================================
   // STATE WEBSITE PUBLIK
@@ -57,11 +82,44 @@ function App() {
   const [statForm, setStatForm] = useState({ category: '', value: '', year: new Date().getFullYear() })
   const [galleryForm, setGalleryForm] = useState({ title: '', image_url: '' })
 
+  // ==========================================
+  // STATE LAYANAN PUBLIK & SUBMISSIONS
+  // ==========================================
+  const [serviceModal, setServiceModal] = useState(null)
+  const [infoTab, setInfoTab] = useState('profil')
+  const [letterForm, setLetterForm] = useState({ name: '', phone: '', type: '', customType: '', address: '', purpose: '' })
+  const [complaintForm, setComplaintForm] = useState({ name: '', phone: '', anonymous: false, category: '', location: '', message: '' })
+  
+  const [letterSubmissions, setLetterSubmissions] = useState(() => {
+    const saved = localStorage.getItem('letterSubmissions')
+    return saved ? JSON.parse(saved) : []
+  })
+  
+  const [complaintSubmissions, setComplaintSubmissions] = useState(() => {
+    const saved = localStorage.getItem('complaintSubmissions')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  useEffect(() => {
+    localStorage.setItem('letterSubmissions', JSON.stringify(letterSubmissions))
+  }, [letterSubmissions])
+
+  useEffect(() => {
+    localStorage.setItem('complaintSubmissions', JSON.stringify(complaintSubmissions))
+  }, [complaintSubmissions])
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') setServiceModal(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const adminLayoutFn = useRef(null)
   const AdminLayout = useRef((props) => adminLayoutFn.current(props)).current
 
   const [imageMode, setImageMode] = useState('upload')
   const [imageProcessing, setImageProcessing] = useState(false)
+  
   const handleImageFile = (file, setData, data, fieldName) => {
     if (!file) return
     if (!file.type.startsWith('image/')) { showToast('File harus berupa gambar', 'error'); return }
@@ -109,21 +167,22 @@ function App() {
     { image: gunung, title: 'Potensi Desa', subtitle: 'Kerajinan Ukiran Kayu', description: 'Woloan terkenal dengan kerajinan ukiran kayu dan anyaman bambu yang mendunia' },
     { image: gunung, title: 'Wisata Alam', subtitle: 'Keindahan Gunung Lokon', description: 'Nikmati pemandangan alam yang memukau dengan udara sejuk pegunungan' }
   ]
-const handleLogoClick = () => {
-  const now = Date.now()
-  if (now - lastClickTime < 1500) {
-    const newCount = logoClickCount + 1
-    setLogoClickCount(newCount)
-    if (newCount >= 3) {
-      setAdminView('login')
-      setLogoClickCount(0)
-      showToast(' Halaman Login Admin', 'info')
+
+  const handleLogoClick = () => {
+    const now = Date.now()
+    if (now - lastClickTime < 1500) {
+      const newCount = logoClickCount + 1
+      setLogoClickCount(newCount)
+      if (newCount >= 3) {
+        setAdminView('login')
+        setLogoClickCount(0)
+        showToast('🔐 Halaman Login Admin', 'info')
+      }
+    } else {
+      setLogoClickCount(1)
     }
-  } else {
-    setLogoClickCount(1)
+    setLastClickTime(now)
   }
-  setLastClickTime(now)
-}
 
   const showToast = (message, type = 'success') => {
     const id = Date.now()
@@ -199,6 +258,73 @@ const handleLogoClick = () => {
     return (priority[a.position] || 99) - (priority[b.position] || 99)
   })
 
+  // ==========================================
+  // FUNGSI LAYANAN PUBLIK - SIMPAN KE ADMIN
+  // ==========================================
+  const openService = (type) => {
+    if (type === 'info') setInfoTab('profil')
+    setServiceModal(type)
+  }
+  const closeService = () => setServiceModal(null)
+
+  const handleSubmitLetter = (e) => {
+    e.preventDefault()
+    const finalType = letterForm.type === 'Surat Lainnya' 
+      ? (letterForm.customType || 'Surat Lainnya') 
+      : letterForm.type
+
+    const newSubmission = {
+      id: Date.now(),
+      ...letterForm,
+      type: finalType,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    }
+    setLetterSubmissions(prev => [newSubmission, ...prev])
+    showToast('Pengajuan surat berhasil dikirim! Data tersimpan di admin panel.', 'success')
+    setLetterForm({ name: '', phone: '', type: '', customType: '', address: '', purpose: '' })
+    closeService()
+  }
+
+  const handleSubmitComplaint = (e) => {
+    e.preventDefault()
+    const newSubmission = {
+      id: Date.now(),
+      ...complaintForm,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    }
+    setComplaintSubmissions(prev => [newSubmission, ...prev])
+    showToast('Pengaduan berhasil dikirim! Data tersimpan di admin panel.', 'success')
+    setComplaintForm({ name: '', phone: '', anonymous: false, category: '', location: '', message: '' })
+    closeService()
+  }
+
+  const updateLetterStatus = (id, status) => {
+    setLetterSubmissions(prev => prev.map(sub => sub.id === id ? { ...sub, status } : sub))
+    showToast(`Status pengajuan diubah menjadi ${status}`, 'success')
+  }
+
+  const updateComplaintStatus = (id, status) => {
+    setComplaintSubmissions(prev => prev.map(sub => sub.id === id ? { ...sub, status } : sub))
+    showToast(`Status pengaduan diubah menjadi ${status}`, 'success')
+  }
+
+  const deleteLetterSubmission = (id) => {
+    if (!window.confirm('Hapus pengajuan ini?')) return
+    setLetterSubmissions(prev => prev.filter(sub => sub.id !== id))
+    showToast('Pengajuan dihapus', 'info')
+  }
+
+  const deleteComplaintSubmission = (id) => {
+    if (!window.confirm('Hapus pengaduan ini?')) return
+    setComplaintSubmissions(prev => prev.filter(sub => sub.id !== id))
+    showToast('Pengaduan dihapus', 'info')
+  }
+
+  // ==========================================
+  // FUNGSI ADMIN
+  // ==========================================
   const handleAdminLogin = async (e) => {
     e.preventDefault()
     setAdminError('')
@@ -238,9 +364,6 @@ const handleLogoClick = () => {
     showToast('Berhasil logout', 'info')
   }
 
-  // ==========================================
-  // PERBAIKAN: gunakan item.id || item._id untuk MongoDB
-  // ==========================================
   const getItemId = (item) => item.id || item._id
 
   const handleDeleteArticle = async (id) => {
@@ -260,7 +383,6 @@ const handleLogoClick = () => {
     setAdminError(''); setShowModal(type)
   }
 
-  // PERBAIKAN: gunakan getItemId agar edit berfungsi di MongoDB
   const openEditForm = (type, item) => {
     const itemId = getItemId(item)
     if (!itemId) { showToast('Data tidak memiliki ID valid', 'error'); return }
@@ -281,8 +403,6 @@ const handleLogoClick = () => {
     setAdminLoading(true)
     try {
       const url = isEditMode ? `http://localhost:5000/api/articles/${currentEditId}` : 'http://localhost:5000/api/articles'
-      console.log('Mengirim data ke:', url)
-      console.log('Isi formData:', formData) 
       const res = await fetch(url, {
         method: isEditMode ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
@@ -291,43 +411,29 @@ const handleLogoClick = () => {
       const data = await res.json()
       if (res.ok && data.success) {
         showToast(isEditMode ? 'Berita diperbarui! ✏️' : 'Berita ditambahkan! 🎉', 'success')
-        setShowModal(null)
-        setIsEditMode(false)
-        setCurrentEditId(null)
+        setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const freshRes = await fetch('http://localhost:5000/api/articles')
         const freshData = await freshRes.json()
         if (freshData.success) setArticles(freshData.data)
       } else { 
-        console.error(' Error dari Backend:', data)
         showToast('Gagal: ' + (data.error || data.message || 'Cek console browser (F12)'), 'error') 
       }
     } catch (err) { 
-      console.error('❌ Error Jaringan:', err)
       showToast('Terjadi kesalahan: ' + err.message, 'error') 
-    } finally { 
-      setAdminLoading(false) 
-    }
+    } finally { setAdminLoading(false) }
   }
 
   const handleAddOfficial = async (e) => {
     e.preventDefault()
     setAdminLoading(true)
     try {
-      const url = isEditMode 
-        ? `http://localhost:5000/api/profile/officials/${currentEditId}` 
-        : 'http://localhost:5000/api/profile/officials'
+      const url = isEditMode ? `http://localhost:5000/api/profile/officials/${currentEditId}` : 'http://localhost:5000/api/profile/officials'
       const method = isEditMode ? 'PUT' : 'POST'
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
-        body: JSON.stringify(officialForm)
-      })
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(officialForm) })
       const data = await res.json()
       if (res.ok && data.success) {
-        showToast(isEditMode ? 'Perangkat diperbarui! ️' : 'Perangkat ditambahkan! 👨‍💼', 'success')
-        setShowModal(null)
-        setIsEditMode(false)
-        setCurrentEditId(null)
+        showToast(isEditMode ? 'Perangkat diperbarui! ✏️' : 'Perangkat ditambahkan! 👨‍💼', 'success')
+        setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const freshRes = await fetch('http://localhost:5000/api/profile/officials')
         const freshData = await freshRes.json()
         if (freshData.success) setOfficials(freshData.data)
@@ -347,21 +453,13 @@ const handleLogoClick = () => {
     e.preventDefault()
     setAdminLoading(true)
     try {
-      const url = isEditMode 
-        ? `http://localhost:5000/api/stats/statistics/${currentEditId}` 
-        : 'http://localhost:5000/api/stats/statistics'
+      const url = isEditMode ? `http://localhost:5000/api/stats/statistics/${currentEditId}` : 'http://localhost:5000/api/stats/statistics'
       const method = isEditMode ? 'PUT' : 'POST'
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
-        body: JSON.stringify(statForm)
-      })
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(statForm) })
       const data = await res.json()
       if (res.ok && data.success) {
         showToast(isEditMode ? 'Statistik diperbarui! ✏️' : 'Statistik ditambahkan! 📊', 'success')
-        setShowModal(null)
-        setIsEditMode(false)
-        setCurrentEditId(null)
+        setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const freshRes = await fetch('http://localhost:5000/api/stats/statistics')
         const freshData = await freshRes.json()
         if (freshData.success) setStatistics(freshData.data)
@@ -377,7 +475,6 @@ const handleLogoClick = () => {
     } catch (err) { showToast('Gagal menghapus', 'error') }
   }
 
-  // PERBAIKAN: handleAddGallery dengan validasi gambar + cek data.success
   const handleAddGallery = async (e) => {
     e.preventDefault()
     if (!galleryForm.image_url || !galleryForm.image_url.trim()) {
@@ -386,34 +483,18 @@ const handleLogoClick = () => {
     }
     setAdminLoading(true)
     try {
-      const url = isEditMode 
-        ? `http://localhost:5000/api/stats/galleries/${currentEditId}` 
-        : 'http://localhost:5000/api/stats/galleries'
+      const url = isEditMode ? `http://localhost:5000/api/stats/galleries/${currentEditId}` : 'http://localhost:5000/api/stats/galleries'
       const method = isEditMode ? 'PUT' : 'POST'
-      console.log('Gallery - Mengirim ke:', url)
-      console.log('Gallery - Data:', galleryForm)
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
-        body: JSON.stringify(galleryForm)
-      })
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(galleryForm) })
       const data = await res.json()
       if (res.ok && data.success) {
         showToast(isEditMode ? 'Foto diperbarui! ✏️' : 'Foto ditambahkan! 🖼️', 'success')
-        setShowModal(null)
-        setIsEditMode(false)
-        setCurrentEditId(null)
+        setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const freshRes = await fetch('http://localhost:5000/api/stats/galleries')
         const freshData = await freshRes.json()
         if (freshData.success) setGalleries(freshData.data)
-      } else { 
-        console.error('❌ Gallery Error:', data)
-        showToast('Gagal: ' + (data.error || data.message || ''), 'error') 
-      }
-    } catch (err) { 
-      console.error('❌ Gallery Network Error:', err)
-      showToast('Terjadi kesalahan: ' + err.message, 'error') 
-    } finally { setAdminLoading(false) }
+      } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+    } catch (err) { showToast('Terjadi kesalahan: ' + err.message, 'error') } finally { setAdminLoading(false) }
   }
 
   const handleDeleteGallery = async (id) => {
@@ -433,47 +514,366 @@ const handleLogoClick = () => {
         body: JSON.stringify(profileForm)
       })
       const data = await res.json()
-      if (res.ok && data.success) { setVillageInfo(profileForm); showToast('Profil diperbarui! ️', 'success') }
+      if (res.ok && data.success) { setVillageInfo(profileForm); showToast('Profil diperbarui! 🏛️', 'success') }
       else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
     } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
   }
 
+  // ==========================================
+  // RENDER: LOGIN PAGE (INTERAKTIF)
+  // ==========================================
   if (adminView === 'login') {
+    const [showPassword, setShowPassword] = useState(false)
+    const [rememberMe, setRememberMe] = useState(false)
+    const [inputFocus, setInputFocus] = useState({ username: false, password: false })
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+
+    useEffect(() => {
+      const handleMouseMove = (e) => {
+        setMousePos({ x: e.clientX, y: e.clientY })
+      }
+      window.addEventListener('mousemove', handleMouseMove)
+      return () => window.removeEventListener('mousemove', handleMouseMove)
+    }, [])
+
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', width: '300px', height: '300px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', top: '-100px', left: '-100px', animation: 'float 6s ease-in-out infinite' }}></div>
-        <div style={{ position: 'absolute', width: '200px', height: '200px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', bottom: '-50px', right: '-50px', animation: 'float 8s ease-in-out infinite reverse' }}></div>
-        <div style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', padding: '50px 40px', borderRadius: '24px', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1, animation: 'slideUp 0.6s ease-out' }}>
-          <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-            <div style={{ width: '90px', height: '90px', margin: '0 auto 20px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '45px', boxShadow: '0 10px 30px rgba(45, 138, 94, 0.4)', animation: 'pulse 2s ease-in-out infinite' }}>🔐</div>
-            <h2 style={{ color: '#1e293b', marginBottom: '8px', fontSize: '32px', fontWeight: '800' }}>Login Admin</h2>
-            <p style={{ color: '#64748b', fontSize: '14px' }}>Kelurahan Woloan Dua, Kota Tomohon</p>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+        
+        {/* Animated Background Bubbles */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              width: `${100 + i * 50}px`,
+              height: `${100 + i * 50}px`,
+              background: 'rgba(255,255,255,0.08)',
+              borderRadius: '50%',
+              top: `${(i * 17) % 100}%`,
+              left: `${(i * 23) % 100}%`,
+              animation: `floatBubble ${6 + i}s ease-in-out infinite`,
+              animationDelay: `${i * 0.5}s`
+            }}></div>
+          ))}
+        </div>
+
+        {/* Mouse Follow Glow Effect */}
+        <div style={{
+          position: 'absolute',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+          borderRadius: '50%',
+          left: mousePos.x - 200,
+          top: mousePos.y - 200,
+          pointerEvents: 'none',
+          transition: 'all 0.3s ease-out'
+        }}></div>
+
+        {/* Main Login Card */}
+        <div style={{ 
+          background: 'rgba(255,255,255,0.98)', 
+          backdropFilter: 'blur(20px)', 
+          padding: '50px 40px', 
+          borderRadius: '24px', 
+          boxShadow: '0 25px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)', 
+          width: '100%', 
+          maxWidth: '440px', 
+          position: 'relative', 
+          zIndex: 1, 
+          animation: 'slideUpLogin 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transform: 'translateY(0)'
+        }}>
+          
+          {/* Animated Icon */}
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{ 
+              width: '100px', 
+              height: '100px', 
+              margin: '0 auto 20px', 
+              background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: '50px', 
+              boxShadow: '0 15px 35px rgba(45, 138, 94, 0.4)',
+              animation: 'pulseIcon 2s ease-in-out infinite',
+              position: 'relative'
+            }}>
+              🔐
+              <div style={{
+                position: 'absolute',
+                inset: '-5px',
+                borderRadius: '50%',
+                border: '3px solid rgba(45, 138, 94, 0.3)',
+                animation: 'ripple 2s ease-out infinite'
+              }}></div>
+            </div>
+            <h2 style={{ color: '#1e293b', marginBottom: '8px', fontSize: '32px', fontWeight: '800', letterSpacing: '-0.5px' }}>Login Admin</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Kelurahan Woloan Dua, Kota Tomohon</p>
           </div>
+
+          {/* Error Message */}
           {adminError && (
-            <div style={{ background: '#fee2e2', color: '#dc2626', padding: '14px', borderRadius: '12px', marginBottom: '20px', fontSize: '14px', borderLeft: '4px solid #dc2626', animation: 'shake 0.5s' }}>️ {adminError}</div>
+            <div style={{ 
+              background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', 
+              color: '#dc2626', 
+              padding: '14px 16px', 
+              borderRadius: '12px', 
+              marginBottom: '20px', 
+              fontSize: '14px', 
+              borderLeft: '4px solid #dc2626',
+              animation: 'shakeError 0.5s ease-in-out',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <span style={{ fontWeight: '500' }}>{adminError}</span>
+            </div>
           )}
+
           <form onSubmit={handleAdminLogin}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#374151', fontWeight: '600', fontSize: '14px' }}>Username</label>
-              <input name="username" placeholder="Masukkan username" required style={{ width: '100%', padding: '14px 16px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box', outline: 'none', transition: 'all 0.3s' }} onFocus={(e) => e.target.style.borderColor = '#2d8a5e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
+            {/* Username Field */}
+            <div style={{ marginBottom: '20px', position: 'relative' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                color: '#374151', 
+                fontWeight: '600', 
+                fontSize: '14px',
+                transition: 'all 0.3s'
+              }}>
+                <span style={{ marginRight: '6px' }}>👤</span>Username
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  name="username" 
+                  placeholder="Masukkan username" 
+                  required 
+                  style={{ 
+                    width: '100%', 
+                    padding: '14px 16px', 
+                    border: `2px solid ${inputFocus.username ? '#2d8a5e' : '#e2e8f0'}`, 
+                    borderRadius: '12px', 
+                    fontSize: '15px', 
+                    boxSizing: 'border-box', 
+                    outline: 'none', 
+                    transition: 'all 0.3s',
+                    background: inputFocus.username ? '#f0fdf4' : 'white',
+                    boxShadow: inputFocus.username ? '0 0 0 4px rgba(45, 138, 94, 0.1)' : 'none'
+                  }} 
+                  onFocus={(e) => setInputFocus({...inputFocus, username: true})} 
+                  onBlur={(e) => setInputFocus({...inputFocus, username: false})} 
+                />
+              </div>
             </div>
-            <div style={{ marginBottom: '25px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#374151', fontWeight: '600', fontSize: '14px' }}>Password</label>
-              <input name="password" type="password" placeholder="Masukkan password" required style={{ width: '100%', padding: '14px 16px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box', outline: 'none', transition: 'all 0.3s' }} onFocus={(e) => e.target.style.borderColor = '#2d8a5e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
+
+            {/* Password Field */}
+            <div style={{ marginBottom: '20px', position: 'relative' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                color: '#374151', 
+                fontWeight: '600', 
+                fontSize: '14px'
+              }}>
+                <span style={{ marginRight: '6px' }}>🔒</span>Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  name="password" 
+                  type={showPassword ? 'text' : 'password'} 
+                  placeholder="Masukkan password" 
+                  required 
+                  style={{ 
+                    width: '100%', 
+                    padding: '14px 50px 14px 16px', 
+                    border: `2px solid ${inputFocus.password ? '#2d8a5e' : '#e2e8f0'}`, 
+                    borderRadius: '12px', 
+                    fontSize: '15px', 
+                    boxSizing: 'border-box', 
+                    outline: 'none', 
+                    transition: 'all 0.3s',
+                    background: inputFocus.password ? '#f0fdf4' : 'white',
+                    boxShadow: inputFocus.password ? '0 0 0 4px rgba(45, 138, 94, 0.1)' : 'none'
+                  }} 
+                  onFocus={(e) => setInputFocus({...inputFocus, password: true})} 
+                  onBlur={(e) => setInputFocus({...inputFocus, password: false})} 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '20px',
+                    padding: '4px',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
-            <button type="submit" disabled={adminLoading} style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 10px 25px rgba(45, 138, 94, 0.4)', transition: 'all 0.3s', transform: adminLoading ? 'scale(0.98)' : 'scale(1)' }}>
-              {adminLoading ? '⏳ Memproses...' : 'Masuk ke Dashboard'}
+
+            {/* Remember Me */}
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              marginBottom: '25px', 
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#475569'
+            }}>
+              <input 
+                type="checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ 
+                  width: '18px', 
+                  height: '18px', 
+                  accentColor: '#2d8a5e',
+                  cursor: 'pointer'
+                }} 
+              />
+              <span style={{ userSelect: 'none' }}>Ingat saya</span>
+            </label>
+
+            {/* Login Button */}
+            <button 
+              type="submit" 
+              disabled={adminLoading} 
+              style={{ 
+                width: '100%', 
+                padding: '16px', 
+                background: adminLoading 
+                  ? 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)' 
+                  : 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '12px', 
+                fontWeight: 'bold', 
+                fontSize: '16px', 
+                cursor: adminLoading ? 'not-allowed' : 'pointer', 
+                boxShadow: adminLoading ? 'none' : '0 10px 25px rgba(45, 138, 94, 0.4)', 
+                transition: 'all 0.3s', 
+                transform: adminLoading ? 'scale(0.98)' : 'scale(1)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              onMouseEnter={(e) => { if (!adminLoading) { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 15px 35px rgba(45, 138, 94, 0.5)' }}}
+              onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; e.target.style.boxShadow = adminLoading ? 'none' : '0 10px 25px rgba(45, 138, 94, 0.4)' }}
+            >
+              {adminLoading ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <span style={{ 
+                    width: '20px', 
+                    height: '20px', 
+                    border: '3px solid rgba(255,255,255,0.3)', 
+                    borderTop: '3px solid white', 
+                    borderRadius: '50%', 
+                    animation: 'spin 0.8s linear infinite',
+                    display: 'inline-block'
+                  }}></span>
+                  Memproses...
+                </span>
+              ) : 'Masuk ke Dashboard'}
             </button>
           </form>
-          <button onClick={() => setAdminView('home')} style={{ width: '100%', marginTop: '15px', padding: '12px', background: 'transparent', border: '2px solid #e2e8f0', borderRadius: '12px', color: '#64748b', cursor: 'pointer', fontSize: '14px', fontWeight: '600', transition: 'all 0.3s' }} onMouseEnter={(e) => { e.target.style.background = '#f0fdf4'; e.target.style.borderColor = '#2d8a5e' }} onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.borderColor = '#e2e8f0' }}>
-            Kembali ke Website
+
+          {/* Back Button */}
+          <button 
+            onClick={() => setAdminView('home')} 
+            style={{ 
+              width: '100%', 
+              marginTop: '15px', 
+              padding: '14px', 
+              background: 'transparent', 
+              border: '2px solid #e2e8f0', 
+              borderRadius: '12px', 
+              color: '#64748b', 
+              cursor: 'pointer', 
+              fontSize: '14px', 
+              fontWeight: '600', 
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }} 
+            onMouseEnter={(e) => { 
+              e.target.style.background = '#f0fdf4'; 
+              e.target.style.borderColor = '#2d8a5e';
+              e.target.style.color = '#2d8a5e';
+              e.target.style.transform = 'translateY(-2px)';
+            }} 
+            onMouseLeave={(e) => { 
+              e.target.style.background = 'transparent'; 
+              e.target.style.borderColor = '#e2e8f0';
+              e.target.style.color = '#64748b';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>🏠</span> Kembali ke Website
           </button>
+
+          {/* Footer Info */}
+          <div style={{ 
+            marginTop: '25px', 
+            paddingTop: '20px', 
+            borderTop: '1px solid #e2e8f0',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+              🔒 Login aman dengan enkripsi SSL
+            </p>
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#cbd5e1' }}>
+              © 2026 Kelurahan Woloan Dua
+            </p>
+          </div>
         </div>
+
+        {/* CSS Animations */}
         <style>{`
-          @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
-          @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-          @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-          @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+          @keyframes slideUpLogin { 
+            from { opacity: 0; transform: translateY(50px) scale(0.95); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+          }
+          @keyframes floatBubble { 
+            0%, 100% { transform: translateY(0px) translateX(0px); } 
+            33% { transform: translateY(-30px) translateX(20px); } 
+            66% { transform: translateY(20px) translateX(-20px); } 
+          }
+          @keyframes pulseIcon { 
+            0%, 100% { transform: scale(1); } 
+            50% { transform: scale(1.05); } 
+          }
+          @keyframes ripple { 
+            0% { transform: scale(1); opacity: 0.5; } 
+            100% { transform: scale(1.5); opacity: 0; } 
+          }
+          @keyframes shakeError { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-10px); } 
+            75% { transform: translateX(10px); } 
+          }
+          @keyframes spin { 
+            from { transform: rotate(0deg); } 
+            to { transform: rotate(360deg); } 
+          }
+          @keyframes fadeIn { 
+            from { opacity: 0; } 
+            to { opacity: 1; } 
+          }
         `}</style>
       </div>
     )
@@ -481,15 +881,17 @@ const handleLogoClick = () => {
 
   const adminMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', color: '#2d8a5e' },
+    { id: 'letters', label: 'Pengajuan Surat', icon: '📋', color: '#10b981' },
+    { id: 'complaints', label: 'Pengaduan', icon: '📢', color: '#f59e0b' },
     { id: 'profile', label: 'Profil Kelurahan', icon: '🏛️', color: '#10b981' },
     { id: 'officials', label: 'Perangkat Desa', icon: '👨‍💼', color: '#059669' },
     { id: 'stats', label: 'Statistik', icon: '📈', color: '#14b8a6' },
-    { id: 'galleries', label: 'Galeri Foto', icon: '️🖼️', color: '#0d9488' },
-    { id: 'map', label: 'Peta Desa', icon: '️🗺️', color: '#059669' }, 
+    { id: 'galleries', label: 'Galeri Foto', icon: '️', color: '#0d9488' },
+    { id: 'map', label: 'Peta Desa', icon: '️', color: '#059669' }, 
     { id: 'articles', label: 'Berita', icon: '📰', color: '#1e5d3f' }
   ]
 
-  adminLayoutFn.current = ({ children, title }) => (
+  const AdminLayoutComponent = ({ children, title }) => (
     <div style={{ minHeight: '100vh', background: darkMode ? '#0f172a' : '#f1f5f9', display: 'flex', transition: 'all 0.3s' }}>
       <aside style={{ 
         width: sidebarCollapsed ? '80px' : '280px', 
@@ -523,6 +925,16 @@ const handleLogoClick = () => {
             }} onMouseEnter={(e) => { if (adminPage !== item.id) e.target.style.background = 'rgba(255,255,255,0.1)' }} onMouseLeave={(e) => { if (adminPage !== item.id) e.target.style.background = 'transparent' }}>
               <span style={{ fontSize: '20px' }}>{item.icon}</span>
               {!sidebarCollapsed && <span>{item.label}</span>}
+              {item.id === 'letters' && letterSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                  {letterSubmissions.filter(s => s.status === 'pending').length}
+                </span>
+              )}
+              {item.id === 'complaints' && complaintSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                  {complaintSubmissions.filter(s => s.status === 'pending').length}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -545,7 +957,7 @@ const handleLogoClick = () => {
             <h2 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>{title}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <input type="text" placeholder="🔍 Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            <input type="text" placeholder=" Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
               style={{ padding: '10px 16px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : '#f8fafc', color: darkMode ? 'white' : '#1e293b', outline: 'none', width: '200px', fontSize: '14px' }} />
             <button onClick={() => setDarkMode(!darkMode)} style={{ 
               width: '42px', height: '42px', borderRadius: '12px', border: 'none',
@@ -578,19 +990,23 @@ const handleLogoClick = () => {
                 position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
                 🔔
-                <span style={{ position: 'absolute', top: '8px', right: '8px', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: `2px solid ${darkMode ? '#1e293b' : 'white'}` }}></span>
+                {(letterSubmissions.filter(s => s.status === 'pending').length > 0 || complaintSubmissions.filter(s => s.status === 'pending').length > 0) && (
+                  <span style={{ position: 'absolute', top: '8px', right: '8px', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: `2px solid ${darkMode ? '#1e293b' : 'white'}`, animation: 'pulse 2s infinite' }}></span>
+                )}
               </button>
               {showNotifications && (
                 <div style={{ position: 'absolute', top: '55px', right: 0, width: '300px', background: darkMode ? '#1e293b' : 'white', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', padding: '16px', zIndex: 200, border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
                   <h4 style={{ margin: '0 0 12px', color: darkMode ? 'white' : '#1e293b', fontSize: '15px' }}>🔔 Notifikasi</h4>
-                  <div style={{ padding: '12px', background: darkMode ? '#0f172a' : '#f0fdf4', borderRadius: '10px', marginBottom: '8px' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: darkMode ? 'white' : '#1e293b' }}>✅ Sistem berjalan normal</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b' }}>Baru saja</p>
-                  </div>
-                  <div style={{ padding: '12px', background: darkMode ? '#0f172a' : '#fef3c7', borderRadius: '10px' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: darkMode ? 'white' : '#1e293b' }}>📊 {articles.length} berita aktif</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b' }}>Hari ini</p>
-                  </div>
+                  {letterSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                    <div style={{ padding: '12px', background: darkMode ? '#0f172a' : '#f0fdf4', borderRadius: '10px', marginBottom: '8px' }}>
+                      <p style={{ margin: 0, fontSize: '13px', color: darkMode ? 'white' : '#1e293b' }}>📋 {letterSubmissions.filter(s => s.status === 'pending').length} pengajuan surat baru</p>
+                    </div>
+                  )}
+                  {complaintSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                    <div style={{ padding: '12px', background: darkMode ? '#0f172a' : '#fef3c7', borderRadius: '10px' }}>
+                      <p style={{ margin: 0, fontSize: '13px', color: darkMode ? 'white' : '#1e293b' }}>📢 {complaintSubmissions.filter(s => s.status === 'pending').length} pengaduan baru</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -611,7 +1027,7 @@ const handleLogoClick = () => {
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>Administrator</p>
                   </div>
                   <button onClick={() => { setShowProfileMenu(false); setAdminPage('profile'); }} style={{ width: '100%', padding: '10px', background: 'transparent', border: 'none', color: darkMode ? 'white' : '#1e293b', cursor: 'pointer', textAlign: 'left', fontSize: '13px', borderRadius: '8px' }}>⚙️ Pengaturan</button>
-                  <button onClick={handleAdminLogout} style={{ width: '100%', padding: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', textAlign: 'left', fontSize: '13px', borderRadius: '8px' }}>🚪 Logout</button>
+                  <button onClick={handleAdminLogout} style={{ width: '100%', padding: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', textAlign: 'left', fontSize: '13px', borderRadius: '8px' }}> Logout</button>
                 </div>
               )}
             </div>
@@ -619,9 +1035,7 @@ const handleLogoClick = () => {
         </header>
         <div style={{ padding: '30px' }}>{children}</div>
       </div>
-
       {renderModal()}
-
       <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {toasts.map(toast => (
           <div key={toast.id} style={{
@@ -629,25 +1043,29 @@ const handleLogoClick = () => {
             background: toast.type === 'success' ? 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)' : toast.type === 'error' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             boxShadow: '0 10px 30px rgba(0,0,0,0.2)', animation: 'slideInRight 0.4s', minWidth: '250px'
           }}>
-            {toast.type === 'success' ? '✅' : toast.type === 'error' ? '' : 'ℹ️'} {toast.message}
+            {toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : 'ℹ️'} {toast.message}
           </div>
         ))}
       </div>
       <style>{`
         @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
       `}</style>
     </div>
   )
 
+  // ==========================================
+  // RENDER: ADMIN PAGES
+  // ==========================================
   if (adminView === 'admin' && adminPage === 'dashboard') {
     const stats = [
-      { label: 'Total Berita', value: animatedStats.articles, icon: '', color: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', bg: '#dcfce7', change: '+12%' },
+      { label: 'Total Berita', value: animatedStats.articles, icon: '📰', color: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', bg: '#dcfce7', change: '+12%' },
       { label: 'Perangkat Desa', value: animatedStats.officials, icon: '👨‍💼', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', bg: '#d1fae5', change: '+5%' },
       { label: 'Data Statistik', value: animatedStats.stats, icon: '📊', color: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', bg: '#ccfbf1', change: '+8%' },
       { label: 'Foto Galeri', value: animatedStats.galleries, icon: '🖼️', color: 'linear-gradient(135deg, #059669 0%, #047857 100%)', bg: '#a7f3d0', change: '+15%' }
     ]
     return (
-      <AdminLayout title="Dashboard">
+      <AdminLayoutComponent title="Dashboard">
         <div style={{ background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '24px', padding: '40px', marginBottom: '30px', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(45, 138, 94, 0.3)' }}>
           <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '100%', backgroundImage: `url(${gunung})`, backgroundSize: 'cover', opacity: 0.15 }}></div>
           <div style={{ position: 'relative', zIndex: 1 }}>
@@ -683,8 +1101,8 @@ const handleLogoClick = () => {
               {[
                 { label: 'Tambah Berita', icon: '📰', color: '#2d8a5e', action: () => openAddForm('article') },
                 { label: 'Tambah Perangkat', icon: '👨‍💼', color: '#10b981', action: () => openAddForm('official') },
-                { label: 'Tambah Statistik', icon: '', color: '#14b8a6', action: () => openAddForm('stat') },
-                { label: 'Tambah Foto', icon: '️', color: '#059669', action: () => openAddForm('gallery') }
+                { label: 'Tambah Statistik', icon: '📈', color: '#14b8a6', action: () => openAddForm('stat') },
+                { label: 'Tambah Foto', icon: '🖼️', color: '#059669', action: () => openAddForm('gallery') }
               ].map((action, i) => (
                 <button key={i} onClick={action.action} style={{ padding: '20px', background: darkMode ? '#0f172a' : '#f8fafc', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s', display: 'flex', alignItems: 'center', gap: '15px' }} onMouseEnter={(e) => { e.target.style.borderColor = action.color; e.target.style.transform = 'translateY(-3px)' }} onMouseLeave={(e) => { e.target.style.borderColor = darkMode ? '#334155' : '#e2e8f0'; e.target.style.transform = 'translateY(0)' }}>
                   <div style={{ width: '45px', height: '45px', background: action.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>{action.icon}</div>
@@ -713,13 +1131,123 @@ const handleLogoClick = () => {
             </div>
           </div>
         </div>
-      </AdminLayout>
+      </AdminLayoutComponent>
+    )
+  }
+
+  if (adminView === 'admin' && adminPage === 'letters') {
+    const filteredLetters = letterSubmissions.filter(l => 
+      l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.type.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    return (
+      <AdminLayoutComponent title="Pengajuan Surat Online">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+          <div>
+            <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Pengajuan ({filteredLetters.length})</h3>
+            <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Kelola pengajuan surat dari warga</p>
+          </div>
+        </div>
+        {filteredLetters.length === 0 ? (
+          <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+            <div style={{ fontSize: '60px', marginBottom: '15px' }}>📋</div>
+            <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada pengajuan surat</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {filteredLetters.map((letter) => (
+              <div key={letter.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                  <div>
+                    <h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 8px', fontSize: '18px', fontWeight: '700' }}>{letter.name}</h4>
+                    <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '14px' }}>📞 {letter.phone} • 📍 {letter.address}</p>
+                  </div>
+                  <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: letter.status === 'pending' ? '#fef3c7' : letter.status === 'processed' ? '#d1fae5' : '#fee2e2', color: letter.status === 'pending' ? '#92400e' : letter.status === 'processed' ? '#065f46' : '#991b1b' }}>
+                    {letter.status === 'pending' ? '⏳ Menunggu' : letter.status === 'processed' ? '✅ Diproses' : '❌ Ditolak'}
+                  </span>
+                </div>
+                <div style={{ background: darkMode ? '#0f172a' : '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                  <p style={{ margin: '0 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Jenis Surat:</p>
+                  <p style={{ margin: '0 0 12px', color: darkMode ? 'white' : '#1e293b', fontWeight: '600' }}>{letter.type}</p>
+                  <p style={{ margin: '0 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Keperluan:</p>
+                  <p style={{ margin: 0, color: darkMode ? 'white' : '#1e293b' }}>{letter.purpose}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {letter.status === 'pending' && (
+                    <>
+                      <button onClick={() => updateLetterStatus(letter.id, 'processed')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>✅ Tandai Diproses</button>
+                      <button onClick={() => updateLetterStatus(letter.id, 'rejected')} style={{ padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>❌ Tolak</button>
+                    </>
+                  )}
+                  <button onClick={() => deleteLetterSubmission(letter.id)} style={{ padding: '10px 20px', background: darkMode ? '#334155' : '#e2e8f0', color: darkMode ? 'white' : '#64748b', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>🗑️ Hapus</button>
+                </div>
+                <p style={{ margin: '12px 0 0', fontSize: '12px', color: darkMode ? '#64748b' : '#94a3b8' }}>📅 Diajukan: {new Date(letter.submittedAt).toLocaleString('id-ID')}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </AdminLayoutComponent>
+    )
+  }
+
+  if (adminView === 'admin' && adminPage === 'complaints') {
+    const filteredComplaints = complaintSubmissions.filter(c => 
+      c.message.toLowerCase().includes(searchQuery.toLowerCase()) || c.category.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    return (
+      <AdminLayoutComponent title="Pengaduan Warga">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+          <div>
+            <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Pengaduan ({filteredComplaints.length})</h3>
+            <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Kelola pengaduan dan saran dari warga</p>
+          </div>
+        </div>
+        {filteredComplaints.length === 0 ? (
+          <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+            <div style={{ fontSize: '60px', marginBottom: '15px' }}>📢</div>
+            <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada pengaduan</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {filteredComplaints.map((complaint) => (
+              <div key={complaint.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                  <div>
+                    <h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 8px', fontSize: '18px', fontWeight: '700' }}>{complaint.anonymous ? '👤 Anonim' : complaint.name}</h4>
+                    <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '14px' }}>{complaint.phone && `📞 ${complaint.phone} • `}{complaint.location && ` ${complaint.location}`}</p>
+                  </div>
+                  <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: complaint.status === 'pending' ? '#fef3c7' : complaint.status === 'resolved' ? '#d1fae5' : '#e0f2fe', color: complaint.status === 'pending' ? '#92400e' : complaint.status === 'resolved' ? '#065f46' : '#0369a1' }}>
+                    {complaint.status === 'pending' ? '⏳ Baru' : complaint.status === 'resolved' ? '✅ Selesai' : ' Dalam Proses'}
+                  </span>
+                </div>
+                <div style={{ background: darkMode ? '#0f172a' : '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                  <p style={{ margin: '0 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Kategori: <span style={{ color: darkMode ? 'white' : '#1e293b' }}>{complaint.category}</span></p>
+                  <p style={{ margin: '12px 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Isi Pengaduan:</p>
+                  <p style={{ margin: 0, color: darkMode ? 'white' : '#1e293b', lineHeight: '1.6' }}>{complaint.message}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {complaint.status === 'pending' && (
+                    <>
+                      <button onClick={() => updateComplaintStatus(complaint.id, 'in_progress')} style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>🔄 Proses</button>
+                      <button onClick={() => updateComplaintStatus(complaint.id, 'resolved')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>✅ Selesai</button>
+                    </>
+                  )}
+                  {complaint.status === 'in_progress' && (
+                    <button onClick={() => updateComplaintStatus(complaint.id, 'resolved')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>✅ Tandai Selesai</button>
+                  )}
+                  <button onClick={() => deleteComplaintSubmission(complaint.id)} style={{ padding: '10px 20px', background: darkMode ? '#334155' : '#e2e8f0', color: darkMode ? 'white' : '#64748b', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>🗑️ Hapus</button>
+                </div>
+                <p style={{ margin: '12px 0 0', fontSize: '12px', color: darkMode ? '#64748b' : '#94a3b8' }}>📅 Dikirim: {new Date(complaint.submittedAt).toLocaleString('id-ID')}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </AdminLayoutComponent>
     )
   }
 
   if (adminView === 'admin' && adminPage === 'profile') {
     return (
-      <AdminLayout title="Kelola Profil Kelurahan">
+      <AdminLayoutComponent title="Kelola Profil Kelurahan">
         <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px', paddingBottom: '20px', borderBottom: `2px solid ${darkMode ? '#334155' : '#f1f5f9'}` }}>
             <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🏛️</div>
@@ -744,7 +1272,7 @@ const handleLogoClick = () => {
               <input type="text" value={profileForm.address || ''} onChange={e => setProfileForm({...profileForm, address: e.target.value})} required style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }} />
             </div>
             <div style={{ marginBottom: '25px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}> Deskripsi</label>
+              <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📝 Deskripsi</label>
               <textarea value={profileForm.description || ''} onChange={e => setProfileForm({...profileForm, description: e.target.value})} required rows="5" style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '15px', resize: 'vertical' }}></textarea>
             </div>
             <button type="submit" disabled={adminLoading} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.4)' }}>
@@ -752,14 +1280,14 @@ const handleLogoClick = () => {
             </button>
           </form>
         </div>
-      </AdminLayout>
+      </AdminLayoutComponent>
     )
   }
 
   if (adminView === 'admin' && adminPage === 'officials') {
     const filteredOfficials = sortedOfficials.filter(o => o.name.toLowerCase().includes(searchQuery.toLowerCase()) || o.position.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
-      <AdminLayout title="Kelola Perangkat Desa">
+      <AdminLayoutComponent title="Kelola Perangkat Desa">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
           <div>
             <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Perangkat ({filteredOfficials.length})</h3>
@@ -792,24 +1320,24 @@ const handleLogoClick = () => {
             ))}
           </div>
         )}
-      </AdminLayout>
+      </AdminLayoutComponent>
     )
   }
 
   if (adminView === 'admin' && adminPage === 'stats') {
     const filteredStats = statistics.filter(s => s.category.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
-      <AdminLayout title="Kelola Statistik">
+      <AdminLayoutComponent title="Kelola Statistik">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
           <div>
             <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Data Statistik ({filteredStats.length})</h3>
             <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Infografis dan data kelurahan</p>
           </div>
-          <button onClick={() => openAddForm('stat')} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(20, 184, 166, 0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>➕ Tambah Statistik</button>
+          <button onClick={() => openAddForm('stat')} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(20, 184, 166, 0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}> Tambah Statistik</button>
         </div>
         {filteredStats.length === 0 ? (
           <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
-            <div style={{ fontSize: '60px', marginBottom: '15px' }}>📈</div>
+            <div style={{ fontSize: '60px', marginBottom: '15px' }}></div>
             <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada data statistik</p>
           </div>
         ) : (
@@ -821,21 +1349,21 @@ const handleLogoClick = () => {
                 <p style={{ color: '#14b8a6', margin: '0 0 8px', fontSize: '14px', fontWeight: '700' }}>{stat.category}</p>
                 <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '0 0 20px', fontSize: '12px' }}>Tahun {stat.year}</p>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => openEditForm('stat', stat)} style={{ flex: 1, padding: '10px', background: '#14b8a6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
-                  <button onClick={() => handleDeleteStat(getItemId(stat))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
+                  <button onClick={() => openEditForm('stat', stat)} style={{ flex: 1, padding: '10px', background: '#14b8a6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>️ Edit</button>
+                  <button onClick={() => handleDeleteStat(getItemId(stat))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>️ Hapus</button>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </AdminLayout>
+      </AdminLayoutComponent>
     )
   }
 
   if (adminView === 'admin' && adminPage === 'galleries') {
     const filteredGalleries = galleries.filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
-      <AdminLayout title="Kelola Galeri Foto">
+      <AdminLayoutComponent title="Kelola Galeri Foto">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
           <div>
             <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Galeri Foto ({filteredGalleries.length})</h3>
@@ -867,13 +1395,13 @@ const handleLogoClick = () => {
             ))}
           </div>
         )}
-      </AdminLayout>
+      </AdminLayoutComponent>
     )
   }
 
   if (adminView === 'admin' && adminPage === 'map') {
     return (
-      <AdminLayout title="Kelola Peta Desa">
+      <AdminLayoutComponent title="Kelola Peta Desa">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
           <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px' }}>
@@ -895,12 +1423,12 @@ const handleLogoClick = () => {
                 const data = await res.json()
                 if (res.ok && data.success) {
                   setMapCoordinates(mapForm)
-                  showToast('Peta berhasil diperbarui! 📍', 'success')
+                  showToast('Peta berhasil diperbarui! ', 'success')
                 } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
               } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
             }}>
               <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}> Alamat Lengkap</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📍 Alamat Lengkap</label>
                 <textarea value={mapForm.address || ''} onChange={e => setMapForm({...mapForm, address: e.target.value})} required rows="3" style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '14px', resize: 'vertical' }}></textarea>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '18px' }}>
@@ -914,14 +1442,14 @@ const handleLogoClick = () => {
                 </div>
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>🔍 Zoom Level (1-20)</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}> Zoom Level (1-20)</label>
                 <input type="number" min="1" max="20" value={mapForm.zoom || 15} onChange={e => setMapForm({...mapForm, zoom: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} />
               </div>
               <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #bbf7d0' }}>
                 <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>💡 <strong>Cara dapat koordinat:</strong><br />1. Buka <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2d8a5e' }}>Google Maps</a><br />2. Klik kanan di lokasi kelurahan<br />3. Copy angka koordinat yang muncul</p>
               </div>
               <button type="submit" disabled={adminLoading} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(5, 150, 105, 0.4)' }}>
-                {adminLoading ? ' Menyimpan...' : '💾 Simpan Koordinat'}
+                {adminLoading ? '⏳ Menyimpan...' : '💾 Simpan Koordinat'}
               </button>
             </form>
           </div>
@@ -942,14 +1470,14 @@ const handleLogoClick = () => {
             </div>
           </div>
         </div>
-      </AdminLayout>
+      </AdminLayoutComponent>
     )
   }
 
   if (adminView === 'admin' && adminPage === 'articles') {
     const filteredArticles = articles.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase()))
     return (
-      <AdminLayout title="Kelola Berita">
+      <AdminLayoutComponent title="Kelola Berita">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
           <div>
             <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Berita ({filteredArticles.length})</h3>
@@ -959,7 +1487,7 @@ const handleLogoClick = () => {
         </div>
         {filteredArticles.length === 0 ? (
           <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
-            <div style={{ fontSize: '60px', marginBottom: '15px' }}>📰</div>
+            <div style={{ fontSize: '60px', marginBottom: '15px' }}></div>
             <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada berita</p>
           </div>
         ) : (
@@ -972,14 +1500,14 @@ const handleLogoClick = () => {
                   <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '13px' }}>✍️ {article.author || 'Admin'} • 📅 {article.created_at ? new Date(article.created_at).toLocaleDateString('id-ID') : '-'}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                  <button onClick={() => openEditForm('article', article)} style={{ padding: '10px 18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>️ Edit</button>
+                  <button onClick={() => openEditForm('article', article)} style={{ padding: '10px 18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
                   <button onClick={() => handleDeleteArticle(getItemId(article))} style={{ padding: '10px 18px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </AdminLayout>
+      </AdminLayoutComponent>
     )
   }
 
@@ -996,13 +1524,12 @@ const handleLogoClick = () => {
         { name: 'name', label: 'Nama Lengkap *', type: 'text', required: true },
         { name: 'position', label: 'Jabatan *', type: 'select', required: true, options: ['Lurah', 'Sekretaris Lurah', 'Kepala Seksi Pemerintahan', 'Kepala Seksi Pelayanan', 'Kepala Seksi Kesejahteraan', 'Ketua RW', 'Ketua RT', 'Lainnya'] }
       ]},
-      stat: { title: isEditMode ? '️ Edit Statistik' : '➕ Tambah Statistik Baru', icon: '📈', color: '#14b8a6', data: statForm, setData: setStatForm, onSave: handleAddStat, fields: [
+      stat: { title: isEditMode ? '✏️ Edit Statistik' : '➕ Tambah Statistik Baru', icon: '📈', color: '#14b8a6', data: statForm, setData: setStatForm, onSave: handleAddStat, fields: [
         { name: 'category', label: 'Kategori *', type: 'text', required: true, placeholder: 'Contoh: Jumlah Penduduk' },
         { name: 'value', label: 'Nilai *', type: 'text', required: true, placeholder: 'Contoh: 3.245' },
         { name: 'year', label: 'Tahun *', type: 'number', required: true }
       ]},
-      // PERBAIKAN: gallery sekarang pakai type 'image' agar bisa upload file (sama seperti article)
-      gallery: { title: isEditMode ? '✏️ Edit Foto' : '➕ Tambah Foto Baru', icon: '🖼️', color: '#059669', data: galleryForm, setData: setGalleryForm, onSave: handleAddGallery, fields: [
+      gallery: { title: isEditMode ? '✏️ Edit Foto' : ' Tambah Foto Baru', icon: '🖼️', color: '#059669', data: galleryForm, setData: setGalleryForm, onSave: handleAddGallery, fields: [
         { name: 'title', label: 'Judul Foto *', type: 'text', required: true },
         { name: 'image_url', label: 'Gambar Foto *', type: 'image', required: true, preview: true }
       ]}
@@ -1016,7 +1543,7 @@ const handleLogoClick = () => {
               <div style={{ width: '55px', height: '55px', background: config.color, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{config.icon}</div>
               <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>{config.title}</h3>
             </div>
-            <button onClick={() => setShowModal(null)} style={{ width: '40px', height: '40px', background: darkMode ? '#334155' : '#f1f5f9', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '20px', color: darkMode ? 'white' : '#64748b' }}></button>
+            <button onClick={() => setShowModal(null)} style={{ width: '40px', height: '40px', background: darkMode ? '#334155' : '#f1f5f9', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '20px', color: darkMode ? 'white' : '#64748b' }}>✕</button>
           </div>
           <form onSubmit={config.onSave}>
             {config.fields.map(field => (
@@ -1025,7 +1552,7 @@ const handleLogoClick = () => {
                 {field.type === 'image' ? (
                   <div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                      {[{ id: 'upload', label: ' Upload File' }, { id: 'url', label: '🔗 Pakai Link' }].map(m => (
+                      {[{ id: 'upload', label: '📁 Upload File' }, { id: 'url', label: '🔗 Pakai Link' }].map(m => (
                         <button key={m.id} type="button" onClick={() => setImageMode(m.id)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: `2px solid ${imageMode === m.id ? config.color : (darkMode ? '#334155' : '#e2e8f0')}`, background: imageMode === m.id ? config.color : 'transparent', color: imageMode === m.id ? 'white' : (darkMode ? 'white' : '#475569'), fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>{m.label}</button>
                       ))}
                     </div>
@@ -1061,7 +1588,7 @@ const handleLogoClick = () => {
             ))}
             <div style={{ display: 'flex', gap: '12px', marginTop: '25px' }}>
               <button type="submit" disabled={adminLoading} style={{ flex: 1, padding: '16px', background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 100%)`, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: `0 4px 15px ${config.color}66` }}>
-                {adminLoading ? '⏳ Menyimpan...' : '💾 Simpan'}
+                {adminLoading ? '⏳ Menyimpan...' : ' Simpan'}
               </button>
               <button type="button" onClick={() => setShowModal(null)} style={{ padding: '16px 28px', background: darkMode ? '#334155' : '#e2e8f0', color: darkMode ? 'white' : '#1e293b', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>Batal</button>
             </div>
@@ -1075,19 +1602,219 @@ const handleLogoClick = () => {
     )
   }
 
+  function renderServiceModal() {
+    if (!serviceModal) return null
+    const inputStyle = { width: '100%', padding: '13px 14px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', background: 'white', color: '#1e293b', transition: 'border-color 0.2s' }
+    const labelStyle = { display: 'block', marginBottom: '8px', color: '#374151', fontWeight: '600', fontSize: '14px' }
+    const onFocus = (e) => { e.target.style.borderColor = '#2d8a5e' }
+    const onBlur = (e) => { e.target.style.borderColor = '#e2e8f0' }
+    const fieldGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }
+    const submitStyle = { width: '100%', padding: '16px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 8px 20px rgba(45, 138, 94, 0.35)' }
+
+    const meta = {
+      letter: { icon: '📋', title: 'Ajukan Surat Online', sub: 'Isi data, pengajuan akan tersimpan di admin panel' },
+      complaint: { icon: '📢', title: 'Buat Pengaduan', sub: 'Sampaikan keluhan atau saran Anda' },
+      info: { icon: 'ℹ️', title: 'Informasi Publik', sub: 'Informasi resmi Kelurahan Woloan Dua' }
+    }[serviceModal]
+
+    const requirements = LETTER_TYPES[letterForm.type] || []
+    const complaintLen = complaintForm.message.trim().length
+    const infoTabs = [
+      { id: 'profil', label: '🏛️ Profil' },
+      { id: 'perangkat', label: '👥 Perangkat' },
+      { id: 'statistik', label: '📊 Statistik' },
+      { id: 'kontak', label: ' Jam & Kontak' }
+    ]
+
+    return (
+      <div onClick={closeService} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px', animation: 'fadeIn 0.3s' }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', animation: 'slideUp 0.4s' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+              <div style={{ width: '50px', height: '50px', background: 'rgba(255,255,255,0.2)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0 }}>{meta.icon}</div>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800' }}>{meta.title}</h3>
+                <p style={{ margin: '3px 0 0', fontSize: '13px', opacity: 0.9 }}>{meta.sub}</p>
+              </div>
+            </div>
+            <button onClick={closeService} aria-label="Tutup" style={{ width: '38px', height: '38px', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', color: 'white', flexShrink: 0 }}>✕</button>
+          </div>
+
+          {serviceModal === 'letter' && (
+            <form onSubmit={handleSubmitLetter} style={{ padding: '24px 28px 28px' }}>
+              <div style={fieldGrid}>
+                <div>
+                  <label style={labelStyle}>Nama Lengkap *</label>
+                  <input type="text" required value={letterForm.name} onChange={e => setLetterForm({ ...letterForm, name: e.target.value })} placeholder="Sesuai KTP" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                <div>
+                  <label style={labelStyle}>No. WhatsApp *</label>
+                  <input type="tel" required value={letterForm.phone} onChange={e => setLetterForm({ ...letterForm, phone: e.target.value })} placeholder="08xxxxxxxxxx" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Jenis Surat *</label>
+                <select required value={letterForm.type} onChange={e => setLetterForm({ ...letterForm, type: e.target.value, customType: '' })} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                  <option value="">Pilih jenis surat</option>
+                  {Object.keys(LETTER_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              {letterForm.type === 'Surat Lainnya' && (
+                <div style={{ marginBottom: '16px', animation: 'slideUp 0.3s' }}>
+                  <label style={labelStyle}>Tuliskan Jenis Surat yang Dibutuhkan *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={letterForm.customType} 
+                    onChange={e => setLetterForm({ ...letterForm, customType: e.target.value })} 
+                    placeholder="Contoh: Surat Keterangan Cerai, Surat Izin Keramaian, dll" 
+                    style={inputStyle} 
+                    onFocus={onFocus} 
+                    onBlur={onBlur} 
+                  />
+                </div>
+              )}
+              {requirements.length > 0 && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px', padding: '16px 18px', marginBottom: '16px', animation: 'slideUp 0.3s' }}>
+                  <p style={{ margin: '0 0 10px', color: '#166534', fontWeight: '700', fontSize: '14px' }}>📎 Persyaratan yang perlu dibawa ke kantor</p>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {requirements.map(r => (<li key={r} style={{ color: '#166534', fontSize: '14px', display: 'flex', gap: '8px' }}><span>✅</span><span>{r}</span></li>))}
+                  </ul>
+                </div>
+              )}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Alamat / Lingkungan *</label>
+                <input type="text" required value={letterForm.address} onChange={e => setLetterForm({ ...letterForm, address: e.target.value })} placeholder="Contoh: Lingkungan III, Jl. ..." style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+              </div>
+              <div style={{ marginBottom: '22px' }}>
+                <label style={labelStyle}>Keperluan *</label>
+                <textarea required rows={3} value={letterForm.purpose} onChange={e => setLetterForm({ ...letterForm, purpose: e.target.value })} placeholder="Jelaskan singkat untuk apa surat ini dibutuhkan" style={{ ...inputStyle, resize: 'vertical' }} onFocus={onFocus} onBlur={onBlur}></textarea>
+              </div>
+              <button type="submit" style={submitStyle}> Kirim Pengajuan</button>
+              <p style={{ margin: '12px 0 0', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>Pengajuan akan tersimpan di panel admin kelurahan untuk diproses.</p>
+            </form>
+          )}
+
+          {serviceModal === 'complaint' && (
+            <form onSubmit={handleSubmitComplaint} style={{ padding: '24px 28px 28px' }}>
+              <div style={{ marginBottom: '18px' }}>
+                <label style={labelStyle}>Kategori *</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {COMPLAINT_CATEGORIES.map(c => (
+                    <button key={c.label} type="button" onClick={() => setComplaintForm({ ...complaintForm, category: c.label })} style={{ padding: '10px 14px', borderRadius: '24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', border: `2px solid ${complaintForm.category === c.label ? '#2d8a5e' : '#e2e8f0'}`, background: complaintForm.category === c.label ? '#2d8a5e' : 'white', color: complaintForm.category === c.label ? 'white' : '#475569', transition: 'all 0.2s' }}>{c.icon} {c.label}</button>
+                  ))}
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', cursor: 'pointer', color: '#374151', fontSize: '14px', fontWeight: '600' }}>
+                <input type="checkbox" checked={complaintForm.anonymous} onChange={e => setComplaintForm({ ...complaintForm, anonymous: e.target.checked })} style={{ width: '18px', height: '18px', accentColor: '#2d8a5e' }} />
+                Kirim sebagai anonim (nama tidak dicantumkan)
+              </label>
+              <div style={fieldGrid}>
+                <div>
+                  <label style={labelStyle}>Nama {complaintForm.anonymous ? '' : '*'}</label>
+                  <input type="text" required={!complaintForm.anonymous} disabled={complaintForm.anonymous} value={complaintForm.anonymous ? '' : complaintForm.name} onChange={e => setComplaintForm({ ...complaintForm, name: e.target.value })} placeholder={complaintForm.anonymous ? 'Anonim' : 'Nama Anda'} style={{ ...inputStyle, background: complaintForm.anonymous ? '#f1f5f9' : 'white' }} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                <div>
+                  <label style={labelStyle}>No. HP / WhatsApp (opsional)</label>
+                  <input type="tel" value={complaintForm.phone} onChange={e => setComplaintForm({ ...complaintForm, phone: e.target.value })} placeholder="08xxxxxxxxxx" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Lokasi Kejadian (opsional)</label>
+                <input type="text" value={complaintForm.location} onChange={e => setComplaintForm({ ...complaintForm, location: e.target.value })} placeholder="Contoh: Jalan depan Lingkungan II" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+              </div>
+              <div style={{ marginBottom: '22px' }}>
+                <label style={labelStyle}>Isi Pengaduan *</label>
+                <textarea required minLength={20} rows={5} value={complaintForm.message} onChange={e => setComplaintForm({ ...complaintForm, message: e.target.value })} placeholder="Ceritakan keluhan atau saran Anda dengan jelas (minimal 20 karakter)" style={{ ...inputStyle, resize: 'vertical' }} onFocus={onFocus} onBlur={onBlur}></textarea>
+                <p style={{ margin: '6px 0 0', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: complaintLen >= 20 ? '#2d8a5e' : '#94a3b8' }}>{complaintLen} / minimal 20 karakter</p>
+              </div>
+              <button type="submit" style={submitStyle}>📤 Kirim Pengaduan</button>
+              <p style={{ margin: '12px 0 0', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>Pengaduan akan tersimpan di panel admin untuk ditindaklanjuti.</p>
+            </form>
+          )}
+
+          {serviceModal === 'info' && (
+            <div style={{ padding: '20px 28px 28px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', background: '#f1f5f9', borderRadius: '14px', padding: '5px', marginBottom: '20px' }}>
+                {infoTabs.map(t => (
+                  <button key={t.id} type="button" onClick={() => setInfoTab(t.id)} style={{ flex: '1 1 auto', padding: '10px 12px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', background: infoTab === t.id ? 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)' : 'transparent', color: infoTab === t.id ? 'white' : '#64748b', transition: 'all 0.2s' }}>{t.label}</button>
+                ))}
+              </div>
+              {infoTab === 'profil' && (
+                villageInfo ? (
+                  <div style={{ animation: 'slideUp 0.3s' }}>
+                    <h4 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>{villageInfo.name}</h4>
+                    <p style={{ margin: '0 0 16px', color: '#475569', lineHeight: '1.7', fontSize: '15px' }}>{villageInfo.description}</p>
+                    <p style={{ margin: '0 0 6px', color: '#334155', fontSize: '14px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p>
+                    <p style={{ margin: 0, color: '#334155', fontSize: '14px' }}><strong> Telepon:</strong> {villageInfo.phone}</p>
+                  </div>
+                ) : (<p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>Data profil belum tersedia.</p>)
+              )}
+              {infoTab === 'perangkat' && (
+                sortedOfficials.length === 0 ? (<p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', animation: 'slideUp 0.3s' }}>
+                    {sortedOfficials.map((o, i) => (
+                      <div key={getItemId(o) || i} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: '800', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{(o.name || '?').charAt(0).toUpperCase()}</div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, color: '#1e293b', fontWeight: '700', fontSize: '15px' }}>{o.name}</p>
+                          <p style={{ margin: '2px 0 0', color: '#059669', fontWeight: '600', fontSize: '13px' }}>{o.position}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+              {infoTab === 'statistik' && (
+                statistics.length === 0 ? (<p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>Belum ada data statistik.</p>) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', animation: 'slideUp 0.3s' }}>
+                    {statistics.map((s, i) => (
+                      <div key={getItemId(s) || i} style={{ textAlign: 'center', padding: '16px 12px', border: '1px solid #e2e8f0', borderRadius: '14px', background: '#f8fafc' }}>
+                        <p style={{ margin: 0, color: '#2d8a5e', fontWeight: '800', fontSize: '26px' }}>{s.value}</p>
+                        <p style={{ margin: '4px 0 2px', color: '#1e293b', fontWeight: '700', fontSize: '13px' }}>{s.category}</p>
+                        <p style={{ margin: 0, color: '#94a3b8', fontSize: '12px' }}>Tahun {s.year}</p>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+              {infoTab === 'kontak' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'slideUp 0.3s' }}>
+                  <div style={{ padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+                    <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '12px', fontWeight: '700' }}> JAM LAYANAN</p>
+                    <p style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '600' }}>{SERVICE_INFO.jam}</p>
+                  </div>
+                  <div style={{ padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+                    <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '12px', fontWeight: '700' }}>📍 ALAMAT KANTOR</p>
+                    <p style={{ margin: 0, color: '#1e293b', fontSize: '15px', lineHeight: '1.6' }}>{mapCoordinates.address}</p>
+                  </div>
+                  {villageInfo?.phone && (
+                    <div style={{ padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+                      <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '12px', fontWeight: '700' }}>📞 TELEPON</p>
+                      <p style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '600' }}>{villageInfo.phone}</p>
+                    </div>
+                  )}
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}>🗺️ Buka Lokasi di Google Maps</a>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // RENDER: WEBSITE PUBLIK
+  // ==========================================
   return (
     <div className="landing-page">
       <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-container">
           <div className="navbar-brand" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
-  <div className="logo-circle">
-    <img src={tomohon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
-  </div>
-  <div className="brand-text">
-    <h1>Kelurahan Woloan Dua</h1>
-    <p>Kota Tomohon</p>
-  </div>
-</div>
+            <div className="logo-circle"><img src={tomohon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} /></div>
+            <div className="brand-text"><h1>Kelurahan Woloan Dua</h1><p>Kota Tomohon</p></div>
+          </div>
           <ul className="navbar-menu">
             {menuItems.map((item, index) => (<li key={index}><a href={item.link} className={index === 0 ? 'active' : ''}>{item.name}</a></li>))}
           </ul>
@@ -1117,7 +1844,10 @@ const handleLogoClick = () => {
         </div>
         <div className="scroll-indicator"><div className="mouse"><div className="wheel"></div></div><p>Scroll Down</p></div>
         <div className="visitor-widget"><div className="visitor-icon"></div><div className="visitor-info"><span className="visitor-count">{visitorCount}</span><span className="visitor-label">Kunjungan Hari Ini</span></div></div>
-        <div className="complaint-widget"><button className="btn-complaint"><span className="complaint-icon"></span><span>Pengaduan</span></button><button className="btn-accessibility">♿</button></div>
+        <div className="complaint-widget">
+          <button className="btn-complaint" onClick={() => openService('complaint')}><span className="complaint-icon">📢</span><span>Pengaduan</span></button>
+          <button className="btn-accessibility">♿</button>
+        </div>
       </section>
 
       <section className="quick-menu" id="quick-menu">
@@ -1127,7 +1857,7 @@ const handleLogoClick = () => {
             {[
               { icon: '🗺️', title: 'Peta Kelurahan', desc: 'Lihat peta wilayah', link: '#peta' },
               { icon: '📋', title: 'Layanan Surat', desc: 'Ajukan surat online', link: '#layanan' },
-              { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan', link: '#layanan' },
+              { icon: '', title: 'Pengaduan', desc: 'Sampaikan keluhan', link: '#layanan' },
               { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting', link: '#profil' },
               { icon: '📊', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
               { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik', link: '#ppid' },
@@ -1173,9 +1903,9 @@ const handleLogoClick = () => {
         <div className="container">
           <h2 className="section-title">Layanan</h2>
           <div className="info-grid">
-            <div className="info-card"><h3>📋 Surat Menyurat</h3><p>Layanan pengajuan surat secara online.</p><a href="#" className="btn-link">Ajukan Surat →</a></div>
-            <div className="info-card"><h3>📢 Pengaduan</h3><p>Sampaikan keluhan dan saran Anda.</p><a href="#" className="btn-link">Buat Pengaduan →</a></div>
-            <div className="info-card"><h3>ℹ️ Informasi Publik</h3><p>Akses informasi publik kelurahan.</p><a href="#" className="btn-link">Lihat Informasi →</a></div>
+            <div className="info-card"><h3>📋 Surat Menyurat</h3><p>Layanan pengajuan surat secara online.</p><a href="#" className="btn-link" onClick={(e) => { e.preventDefault(); openService('letter') }}>Ajukan Surat →</a></div>
+            <div className="info-card"><h3>📢 Pengaduan</h3><p>Sampaikan keluhan dan saran Anda.</p><a href="#" className="btn-link" onClick={(e) => { e.preventDefault(); openService('complaint') }}>Buat Pengaduan →</a></div>
+            <div className="info-card"><h3>ℹ️ Informasi Publik</h3><p>Akses informasi publik kelurahan.</p><a href="#" className="btn-link" onClick={(e) => { e.preventDefault(); openService('info') }}>Lihat Informasi →</a></div>
           </div>
         </div>
       </section>
@@ -1191,7 +1921,7 @@ const handleLogoClick = () => {
 
       <section className="info-section" id="peta" style={{ backgroundColor: '#f0fdf4' }}>
         <div className="container">
-          <h2 className="section-title"> Peta Lokasi Kelurahan</h2>
+          <h2 className="section-title">📍 Peta Lokasi Kelurahan</h2>
           <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '30px', fontSize: '16px' }}>{mapCoordinates.address}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px', alignItems: 'start' }}>
             <div style={{ height: '450px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(45, 138, 94, 0.15)', border: '3px solid #2d8a5e', position: 'relative' }}>
@@ -1216,7 +1946,7 @@ const handleLogoClick = () => {
                   </div>
                 </div>
               </div>
-              <a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.3)', transition: 'all 0.3s' }} onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}>🗺️ Buka di Google Maps</a>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.3)', transition: 'all 0.3s' }} onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}>️ Buka di Google Maps</a>
             </div>
           </div>
         </div>
@@ -1235,16 +1965,17 @@ const handleLogoClick = () => {
 
       {selectedArticle && (<div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={closeArticleModal}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }} onClick={(e) => e.stopPropagation()}><button onClick={closeArticleModal} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>✕</button><h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>📰 {selectedArticle.title}</h2><p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>Oleh: {selectedArticle.author || 'Admin'}</p><div style={{ lineHeight: '1.6' }}>{selectedArticle.content}</div></div></div>)}
 
+      {renderServiceModal()}
+
       <footer className="footer">
         <div className="container">
           <div className="footer-grid">
-            <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p></div>
+            <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 0431-123456<br />️ kelurahan.woloandua@gmail.com</p></div>
             <div className="footer-col"><h4>Menu Cepat</h4><ul><li><a href="#profil">Profil Kelurahan</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#berita">Berita</a></li></ul></div>
             <div className="footer-col"><h4>Ikuti Kami</h4><div className="social-links"><a href="#">📘 Facebook</a><a href="#">📷 Instagram</a><a href="#">▶ YouTube</a></div></div>
           </div>
           <div className="footer-bottom">
             <p>&copy; 2026 Kelurahan Woloan Dua.</p>
-            <p style={{ marginTop: '10px' }}><a href="#" onClick={(e) => { e.preventDefault(); setAdminView('login'); }} style={{ color: '#64748b', fontSize: '12px', textDecoration: 'none' }}>🔒 Login Admin</a></p>
           </div>
         </div>
       </footer>
