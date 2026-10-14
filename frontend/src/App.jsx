@@ -1042,10 +1042,6 @@ function App() {
                 <label style={lblStyle}>📛 Nama Kelurahan</label>
                 <input type="text" value={profileForm.name || ''} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} required style={fieldStyle} />
               </div>
-              <div>
-                <label style={lblStyle}>📞 Telepon</label>
-                <input type="text" value={profileForm.phone || ''} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} required style={fieldStyle} />
-              </div>
             </div>
             <div style={{ marginBottom: '20px' }}>
               <label style={lblStyle}>📍 Alamat</label>
@@ -1460,7 +1456,6 @@ function App() {
                     <h4 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>{villageInfo.name}</h4>
                     <p style={{ margin: '0 0 16px', color: '#475569', lineHeight: '1.7', fontSize: '15px' }}>{villageInfo.description}</p>
                     <p style={{ margin: '0 0 6px', color: '#334155', fontSize: '14px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p>
-                    <p style={{ margin: 0, color: '#334155', fontSize: '14px' }}><strong>📞 Telepon:</strong> {villageInfo.phone}</p>
                   </div>
                 ) : (<p style={emptyText}>Data profil belum tersedia.</p>)
               )}
@@ -1557,10 +1552,8 @@ function App() {
           <div className="slide-indicators">{slides.map((_, index) => (<button key={index} className={`indicator ${currentSlide === index ? 'active' : ''}`} onClick={() => setCurrentSlide(index)}></button>))}</div>
         </div>
         <div className="scroll-indicator"><div className="mouse"><div className="wheel"></div></div><p>Scroll Down</p></div>
-        <div className="visitor-widget"><div className="visitor-icon">👥</div><div className="visitor-info"><span className="visitor-count">{visitorCount}</span><span className="visitor-label">Kunjungan Hari Ini</span></div></div>
         <div className="complaint-widget">
           <button className="btn-complaint" onClick={() => openService('complaint')}><span className="complaint-icon">📢</span><span>Pengaduan</span></button>
-          <button className="btn-accessibility">♿</button>
         </div>
       </section>
 
@@ -1576,7 +1569,6 @@ function App() {
               { icon: '📊', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
               { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik', link: '#ppid' },
               { icon: '📰', title: 'Berita', desc: 'Kabar terbaru', link: '#berita' },
-              { icon: '🎨', title: 'Potensi Kelurahan', desc: 'Sentra ukiran kayu', link: '#profil' }
             ].map((item, index) => (<a key={index} href={item.link} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}><div className="quick-icon">{item.icon}</div><h3>{item.title}</h3><p>{item.desc}</p></a>))}
           </div>
         </div>
@@ -1695,7 +1687,6 @@ function App() {
           <div className="footer-grid">
             <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 {villageInfo?.phone || '-'}<br />✉️ kelurahan.woloandua@gmail.com</p></div>
             <div className="footer-col"><h4>Menu Cepat</h4><ul><li><a href="#profil">Profil Kelurahan</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#berita">Berita</a></li></ul></div>
-            <div className="footer-col"><h4>Ikuti Kami</h4><div className="social-links"><a href="#">📘 Facebook</a><a href="#">📷 Instagram</a><a href="#">▶ YouTube</a></div></div>
           </div>
           <div className="footer-bottom">
             <p>&copy; 2026 Kelurahan Woloan Dua.</p>
