@@ -22,10 +22,17 @@ const LETTER_TYPES = {
 
 const COMPLAINT_CATEGORIES = [
   { label: 'Infrastruktur', icon: '🛣️' },
+<<<<<<< Updated upstream
   { label: 'Kebersihan & Lingkungan', icon: '🌿' },
   { label: 'Keamanan & Ketertiban', icon: '🛡️' },
   { label: 'Pelayanan Publik', icon: '🏛️' },
   { label: 'Lainnya', icon: '📝' }
+=======
+  { label: 'Kebersihan & Lingkungan', icon: '🗑️' },
+  { label: 'Keamanan & Ketertiban', icon: '🛡️' },
+  { label: 'Pelayanan Publik', icon: '🏛️' },
+  { label: 'Lainnya', icon: '💬' }
+>>>>>>> Stashed changes
 ]
 
 // ==========================================
@@ -140,11 +147,16 @@ function App() {
   const [statistics, setStatistics] = useState([])
   const [galleries, setGalleries] = useState([])
   const [statsLoading, setStatsLoading] = useState(true)
+<<<<<<< Updated upstream
 
   const [mapCoordinates, setMapCoordinates] = useState({
     lat: 1.315820000424215,
     lng: 124.80444529717123,
     zoom: 16,
+=======
+  const [mapCoordinates, setMapCoordinates] = useState({
+    lat: 1.315820000424215, lng: 124.80444529717123, zoom: 16,
+>>>>>>> Stashed changes
     address: 'Kelurahan Woloan Dua, Kecamatan Tomohon Barat, Kota Tomohon, Sulawesi Utara'
   })
   const [mapForm, setMapForm] = useState(mapCoordinates)
@@ -184,11 +196,35 @@ function App() {
   const [infoTab, setInfoTab] = useState('profil')
   const [letterForm, setLetterForm] = useState({ name: '', phone: '', type: '', customType: '', address: '', purpose: '' })
   const [complaintForm, setComplaintForm] = useState({ name: '', phone: '', anonymous: false, category: '', location: '', message: '' })
+<<<<<<< Updated upstream
   const [letterSubmissions, setLetterSubmissions] = useState([])
   const [complaintSubmissions, setComplaintSubmissions] = useState([])
 
   const [imageMode, setImageMode] = useState('upload')
   const [imageProcessing, setImageProcessing] = useState(false)
+=======
+  const [letterSubmissions, setLetterSubmissions] = useState(() => {
+    const saved = localStorage.getItem('letterSubmissions')
+    return saved ? JSON.parse(saved) : []
+  })
+  const [complaintSubmissions, setComplaintSubmissions] = useState(() => {
+    const saved = localStorage.getItem('complaintSubmissions')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  // ==========================================
+  // PERBAIKAN: Hooks untuk Login Page dipindahkan ke LEVEL ATAS
+  // (Tidak boleh ada di dalam if/conditional)
+  // ==========================================
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+  const [inputFocus, setInputFocus] = useState({ username: false, password: false })
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    localStorage.setItem('letterSubmissions', JSON.stringify(letterSubmissions))
+  }, [letterSubmissions])
+>>>>>>> Stashed changes
 
   // Wrapper stabil agar halaman admin tidak di-remount setiap render
   const adminLayoutFn = useRef(null)
@@ -215,6 +251,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+<<<<<<< Updated upstream
   useEffect(() => {
     const targets = { articles: articles.length, officials: officials.length, stats: statistics.length, galleries: galleries.length }
     const steps = 60
@@ -264,6 +301,23 @@ function App() {
   // ==========================================
   // FUNGSI UMUM
   // ==========================================
+=======
+  // PERBAIKAN: useEffect untuk mouse tracking dipindahkan ke LEVEL ATAS
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePos({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
+  const adminLayoutFn = useRef(null)
+  const AdminLayout = useRef((props) => adminLayoutFn.current(props)).current
+
+  const [imageMode, setImageMode] = useState('upload')
+  const [imageProcessing, setImageProcessing] = useState(false)
+
+>>>>>>> Stashed changes
   const handleImageFile = (file, setData, data, fieldName) => {
     if (!file) return
     if (!file.type.startsWith('image/')) { showToast('File harus berupa gambar', 'error'); return }
@@ -274,9 +328,7 @@ function App() {
       const img = new Image()
       img.onload = () => {
         const MAX_CHARS = 70000
-        let maxW = 1000
-        let quality = 0.7
-        let dataUrl = ''
+        let maxW = 1000, quality = 0.7, dataUrl = ''
         for (let i = 0; i < 12; i++) {
           const scale = Math.min(1, maxW / img.width)
           const canvas = document.createElement('canvas')
@@ -311,17 +363,58 @@ function App() {
     if (now - lastClickTime < 1500) {
       const newCount = logoClickCount + 1
       setLogoClickCount(newCount)
-      if (newCount >= 3) {
-        setAdminView('login')
-        setLogoClickCount(0)
-        showToast('🔐 Halaman Login Admin', 'info')
-      }
-    } else {
-      setLogoClickCount(1)
-    }
+      if (newCount >= 3) { setAdminView('login'); setLogoClickCount(0); showToast('🔐 Halaman Login Admin', 'info') }
+    } else { setLogoClickCount(1) }
     setLastClickTime(now)
   }
 
+<<<<<<< Updated upstream
+=======
+  const showToast = (message, type = 'success') => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
+  }
+
+  useEffect(() => {
+    const targets = { articles: articles.length, officials: officials.length, stats: statistics.length, galleries: galleries.length }
+    const duration = 1500, steps = 60, interval = duration / steps
+    let step = 0
+    const timer = setInterval(() => {
+      step++
+      const progress = step / steps
+      setAnimatedStats({
+        articles: Math.floor(targets.articles * progress),
+        officials: Math.floor(targets.officials * progress),
+        stats: Math.floor(targets.stats * progress),
+        galleries: Math.floor(targets.galleries * progress)
+      })
+      if (step >= steps) clearInterval(timer)
+    }, interval)
+    return () => clearInterval(timer)
+  }, [articles.length, officials.length, statistics.length, galleries.length])
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % slides.length), 5000)
+    return () => clearInterval(timer)
+  }, [slides.length])
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/articles').then(res => res.json()).then(data => { if (data.success) setArticles(data.data); setLoading(false) }).catch(() => setLoading(false))
+    fetch('http://localhost:5000/api/profile/info').then(res => res.json()).then(data => { if (data.success) { setVillageInfo(data.data); setProfileForm(data.data || {}) } setProfileLoading(false) }).catch(() => setProfileLoading(false))
+    fetch('http://localhost:5000/api/profile/officials').then(res => res.json()).then(data => { if (data.success) setOfficials(data.data) }).catch(() => {})
+    fetch('http://localhost:5000/api/stats/statistics').then(res => res.json()).then(data => { if (data.success) setStatistics(data.data); setStatsLoading(false) }).catch(() => setStatsLoading(false))
+    fetch('http://localhost:5000/api/stats/galleries').then(res => res.json()).then(data => { if (data.success) setGalleries(data.data) }).catch(() => {})
+    fetch('http://localhost:5000/api/profile/map').then(res => res.json()).then(data => { if (data.success) { setMapCoordinates(data.data); setMapForm(data.data) } }).catch(() => {})
+  }, [])
+
+>>>>>>> Stashed changes
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
   const openArticleModal = (article) => setSelectedArticle(article)
@@ -329,6 +422,7 @@ function App() {
   const getItemId = (item) => item.id || item._id
 
   const menuItems = [
+<<<<<<< Updated upstream
     { name: 'Home', link: '#home' },
     { name: 'Profil Desa', link: '#profil' },
     { name: 'Infografis', link: '#infografis' },
@@ -336,6 +430,11 @@ function App() {
     { name: 'Peta', link: '#peta' },
     { name: 'Berita', link: '#berita' },
     { name: 'PPID', link: '#ppid' }
+=======
+    { name: 'Home', link: '#home' }, { name: 'Profil Desa', link: '#profil' },
+    { name: 'Infografis', link: '#infografis' }, { name: 'Galeri', link: '#galeri' },
+    { name: 'Peta', link: '#peta' }, { name: 'Berita', link: '#berita' }, { name: 'PPID', link: '#ppid' }
+>>>>>>> Stashed changes
   ]
 
   const sortedOfficials = [...officials].sort((a, b) => {
@@ -344,17 +443,19 @@ function App() {
   })
 
   // ==========================================
+<<<<<<< Updated upstream
   // FUNGSI LAYANAN PUBLIK & PENGAJUAN
+=======
+  // FUNGSI LAYANAN PUBLIK
+>>>>>>> Stashed changes
   // ==========================================
-  const openService = (type) => {
-    if (type === 'info') setInfoTab('profil')
-    setServiceModal(type)
-  }
+  const openService = (type) => { if (type === 'info') setInfoTab('profil'); setServiceModal(type) }
   const closeService = () => setServiceModal(null)
 
   const handleSubmitLetter = async (e) => {
     e.preventDefault()
     const finalType = letterForm.type === 'Surat Lainnya' ? (letterForm.customType || 'Surat Lainnya') : letterForm.type
+<<<<<<< Updated upstream
     try {
       const res = await fetch(`${API}/api/letters`, {
         method: 'POST',
@@ -370,10 +471,18 @@ function App() {
         showToast(data.message || 'Gagal mengirim pengajuan', 'error')
       }
     } catch (err) { showToast('Server tidak terhubung', 'error') }
+=======
+    const newSubmission = { id: Date.now(), ...letterForm, type: finalType, submittedAt: new Date().toISOString(), status: 'pending' }
+    setLetterSubmissions(prev => [newSubmission, ...prev])
+    showToast('Pengajuan surat berhasil dikirim! Data tersimpan di admin panel.', 'success')
+    setLetterForm({ name: '', phone: '', type: '', customType: '', address: '', purpose: '' })
+    closeService()
+>>>>>>> Stashed changes
   }
 
   const handleSubmitComplaint = async (e) => {
     e.preventDefault()
+<<<<<<< Updated upstream
     if (!complaintForm.category) { showToast('Pilih kategori pengaduan terlebih dahulu', 'error'); return }
     try {
       const res = await fetch(`${API}/api/complaints`, {
@@ -441,15 +550,33 @@ function App() {
       } else showToast('Gagal menghapus', 'error')
     } catch (err) { showToast('Server tidak terhubung', 'error') }
   }
+=======
+    const newSubmission = { id: Date.now(), ...complaintForm, submittedAt: new Date().toISOString(), status: 'pending' }
+    setComplaintSubmissions(prev => [newSubmission, ...prev])
+    showToast('Pengaduan berhasil dikirim! Data tersimpan di admin panel.', 'success')
+    setComplaintForm({ name: '', phone: '', anonymous: false, category: '', location: '', message: '' })
+    closeService()
+  }
+
+  const updateLetterStatus = (id, status) => { setLetterSubmissions(prev => prev.map(sub => sub.id === id ? { ...sub, status } : sub)); showToast(`Status pengajuan diubah menjadi ${status}`, 'success') }
+  const updateComplaintStatus = (id, status) => { setComplaintSubmissions(prev => prev.map(sub => sub.id === id ? { ...sub, status } : sub)); showToast(`Status pengaduan diubah menjadi ${status}`, 'success') }
+  const deleteLetterSubmission = (id) => { if (!window.confirm('Hapus pengajuan ini?')) return; setLetterSubmissions(prev => prev.filter(sub => sub.id !== id)); showToast('Pengajuan dihapus', 'info') }
+  const deleteComplaintSubmission = (id) => { if (!window.confirm('Hapus pengaduan ini?')) return; setComplaintSubmissions(prev => prev.filter(sub => sub.id !== id)); showToast('Pengaduan dihapus', 'info') }
+>>>>>>> Stashed changes
 
   // ==========================================
   // FUNGSI ADMIN
   // ==========================================
   const handleAdminLogin = async (e) => {
     e.preventDefault()
+<<<<<<< Updated upstream
     setAdminError('')
     setAdminLoading(true)
     const fd = new FormData(e.target)
+=======
+    setAdminError(''); setAdminLoading(true)
+    const formDataObj = new FormData(e.target)
+>>>>>>> Stashed changes
     try {
       const res = await fetch(`${API}/api/auth/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -459,22 +586,16 @@ function App() {
       if (res.ok && data.success) {
         localStorage.setItem('adminToken', data.token)
         localStorage.setItem('adminName', data.admin?.name || 'Administrator')
-        setAdminToken(data.token)
-        setAdminName(data.admin?.name || 'Administrator')
-        setAdminView('admin')
-        setAdminPage('dashboard')
+        setAdminToken(data.token); setAdminName(data.admin?.name || 'Administrator')
+        setAdminView('admin'); setAdminPage('dashboard')
         showToast('Login berhasil! Selamat datang 👋', 'success')
-      } else {
-        setAdminError(data.message || 'Login gagal')
-        showToast('Login gagal', 'error')
-      }
-    } catch (err) {
-      setAdminError('Gagal terhubung ke server')
-      showToast('Server tidak terhubung', 'error')
-    } finally { setAdminLoading(false) }
+      } else { setAdminError(data.message || 'Login gagal'); showToast('Login gagal', 'error') }
+    } catch (err) { setAdminError('Gagal terhubung ke server'); showToast('Server tidak terhubung', 'error') }
+    finally { setAdminLoading(false) }
   }
 
   const handleAdminLogout = () => {
+<<<<<<< Updated upstream
     localStorage.removeItem('adminToken')
     localStorage.removeItem('adminName')
     setAdminToken('')
@@ -483,16 +604,24 @@ function App() {
     setComplaintSubmissions([])
     setAdminView('home')
     setAdminPage('dashboard')
+=======
+    localStorage.removeItem('adminToken'); localStorage.removeItem('adminName')
+    setAdminToken(''); setAdminName('Administrator'); setAdminView('home'); setAdminPage('dashboard')
+>>>>>>> Stashed changes
     showToast('Berhasil logout', 'info')
   }
 
   const handleDeleteArticle = async (id) => {
     if (!window.confirm('Yakin ingin menghapus berita ini?')) return
+<<<<<<< Updated upstream
     try {
       const res = await fetch(`${API}/api/articles/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
       if (res.ok) { setArticles(articles.filter(a => getItemId(a) !== id)); showToast('Berita berhasil dihapus', 'success') }
       else showToast('Gagal menghapus (sesi login mungkin habis)', 'error')
     } catch (err) { showToast('Gagal menghapus', 'error') }
+=======
+    try { const res = await fetch(`http://localhost:5000/api/articles/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } }); if (res.ok) { setArticles(articles.filter(a => getItemId(a) !== id)); showToast('Berita berhasil dihapus', 'success') } } catch (err) { showToast('Gagal menghapus', 'error') }
+>>>>>>> Stashed changes
   }
 
   const openAddForm = (type) => {
@@ -520,6 +649,7 @@ function App() {
     if (!formData.image_url || !formData.image_url.trim()) { showToast('Gambar wajib diisi (upload file atau isi link)', 'error'); return }
     setAdminLoading(true)
     try {
+<<<<<<< Updated upstream
       const url = isEditMode ? `${API}/api/articles/${currentEditId}` : `${API}/api/articles`
       const res = await fetch(url, {
         method: isEditMode ? 'PUT' : 'POST',
@@ -536,56 +666,81 @@ function App() {
         showToast('Gagal: ' + (data.error || data.message || 'Cek console browser (F12)'), 'error')
       }
     } catch (err) { showToast('Terjadi kesalahan: ' + err.message, 'error') } finally { setAdminLoading(false) }
+=======
+      const url = isEditMode ? `http://localhost:5000/api/articles/${currentEditId}` : 'http://localhost:5000/api/articles'
+      const res = await fetch(url, { method: isEditMode ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(formData) })
+      const data = await res.json()
+      if (res.ok && data.success) { showToast(isEditMode ? 'Berita diperbarui! ✏️' : 'Berita ditambahkan! 🎉', 'success'); setShowModal(null); setIsEditMode(false); setCurrentEditId(null); const freshRes = await fetch('http://localhost:5000/api/articles'); const freshData = await freshRes.json(); if (freshData.success) setArticles(freshData.data) }
+      else { showToast('Gagal: ' + (data.error || data.message || 'Cek console browser (F12)'), 'error') }
+    } catch (err) { showToast('Terjadi kesalahan: ' + err.message, 'error') }
+    finally { setAdminLoading(false) }
+>>>>>>> Stashed changes
   }
 
   const handleAddOfficial = async (e) => {
-    e.preventDefault()
-    setAdminLoading(true)
+    e.preventDefault(); setAdminLoading(true)
     try {
       const url = isEditMode ? `${API}/api/profile/officials/${currentEditId}` : `${API}/api/profile/officials`
       const res = await fetch(url, { method: isEditMode ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(officialForm) })
       const data = await res.json()
+<<<<<<< Updated upstream
       if (res.ok && data.success) {
         showToast(isEditMode ? 'Perangkat diperbarui! ✏️' : 'Perangkat ditambahkan! 👨‍💼', 'success')
         setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const fresh = await (await fetch(`${API}/api/profile/officials`)).json()
         if (fresh.success) setOfficials(fresh.data)
       } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+=======
+      if (res.ok && data.success) { showToast(isEditMode ? 'Perangkat diperbarui! ✏️' : 'Perangkat ditambahkan! 👨‍💼', 'success'); setShowModal(null); setIsEditMode(false); setCurrentEditId(null); const freshRes = await fetch('http://localhost:5000/api/profile/officials'); const freshData = await freshRes.json(); if (freshData.success) setOfficials(freshData.data) }
+      else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+>>>>>>> Stashed changes
     } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
   }
 
   const handleDeleteOfficial = async (id) => {
     if (!window.confirm('Yakin ingin menghapus?')) return
+<<<<<<< Updated upstream
     try {
       const res = await fetch(`${API}/api/profile/officials/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
       if (res.ok) { setOfficials(officials.filter(o => getItemId(o) !== id)); showToast('Perangkat dihapus', 'success') }
       else showToast('Gagal menghapus (sesi login mungkin habis)', 'error')
     } catch (err) { showToast('Gagal menghapus', 'error') }
+=======
+    try { const res = await fetch(`http://localhost:5000/api/profile/officials/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } }); if (res.ok) { setOfficials(officials.filter(o => getItemId(o) !== id)); showToast('Perangkat dihapus', 'success') } } catch (err) { showToast('Gagal menghapus', 'error') }
+>>>>>>> Stashed changes
   }
 
   const handleAddStat = async (e) => {
-    e.preventDefault()
-    setAdminLoading(true)
+    e.preventDefault(); setAdminLoading(true)
     try {
       const url = isEditMode ? `${API}/api/stats/statistics/${currentEditId}` : `${API}/api/stats/statistics`
       const res = await fetch(url, { method: isEditMode ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(statForm) })
       const data = await res.json()
+<<<<<<< Updated upstream
       if (res.ok && data.success) {
         showToast(isEditMode ? 'Statistik diperbarui! ✏️' : 'Statistik ditambahkan! 📊', 'success')
         setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const fresh = await (await fetch(`${API}/api/stats/statistics`)).json()
         if (fresh.success) setStatistics(fresh.data)
       } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+=======
+      if (res.ok && data.success) { showToast(isEditMode ? 'Statistik diperbarui! ✏️' : 'Statistik ditambahkan! 📊', 'success'); setShowModal(null); setIsEditMode(false); setCurrentEditId(null); const freshRes = await fetch('http://localhost:5000/api/stats/statistics'); const freshData = await freshRes.json(); if (freshData.success) setStatistics(freshData.data) }
+      else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+>>>>>>> Stashed changes
     } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) }
   }
 
   const handleDeleteStat = async (id) => {
     if (!window.confirm('Yakin ingin menghapus?')) return
+<<<<<<< Updated upstream
     try {
       const res = await fetch(`${API}/api/stats/statistics/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
       if (res.ok) { setStatistics(statistics.filter(s => getItemId(s) !== id)); showToast('Statistik dihapus', 'success') }
       else showToast('Gagal menghapus (sesi login mungkin habis)', 'error')
     } catch (err) { showToast('Gagal menghapus', 'error') }
+=======
+    try { const res = await fetch(`http://localhost:5000/api/stats/statistics/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } }); if (res.ok) { setStatistics(statistics.filter(s => getItemId(s) !== id)); showToast('Statistik dihapus', 'success') } } catch (err) { showToast('Gagal menghapus', 'error') }
+>>>>>>> Stashed changes
   }
 
   const handleAddGallery = async (e) => {
@@ -596,29 +751,41 @@ function App() {
       const url = isEditMode ? `${API}/api/stats/galleries/${currentEditId}` : `${API}/api/stats/galleries`
       const res = await fetch(url, { method: isEditMode ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(galleryForm) })
       const data = await res.json()
+<<<<<<< Updated upstream
       if (res.ok && data.success) {
         showToast(isEditMode ? 'Foto diperbarui! ✏️' : 'Foto ditambahkan! 🖼️', 'success')
         setShowModal(null); setIsEditMode(false); setCurrentEditId(null)
         const fresh = await (await fetch(`${API}/api/stats/galleries`)).json()
         if (fresh.success) setGalleries(fresh.data)
       } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+=======
+      if (res.ok && data.success) { showToast(isEditMode ? 'Foto diperbarui! ✏️' : 'Foto ditambahkan! 🖼️', 'success'); setShowModal(null); setIsEditMode(false); setCurrentEditId(null); const freshRes = await fetch('http://localhost:5000/api/stats/galleries'); const freshData = await freshRes.json(); if (freshData.success) setGalleries(freshData.data) }
+      else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
+>>>>>>> Stashed changes
     } catch (err) { showToast('Terjadi kesalahan: ' + err.message, 'error') } finally { setAdminLoading(false) }
   }
 
   const handleDeleteGallery = async (id) => {
     if (!window.confirm('Yakin ingin menghapus?')) return
+<<<<<<< Updated upstream
     try {
       const res = await fetch(`${API}/api/stats/galleries/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } })
       if (res.ok) { setGalleries(galleries.filter(g => getItemId(g) !== id)); showToast('Foto dihapus', 'success') }
       else showToast('Gagal menghapus (sesi login mungkin habis)', 'error')
     } catch (err) { showToast('Gagal menghapus', 'error') }
+=======
+    try { const res = await fetch(`http://localhost:5000/api/stats/galleries/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } }); if (res.ok) { setGalleries(galleries.filter(g => getItemId(g) !== id)); showToast('Foto dihapus', 'success') } } catch (err) { showToast('Gagal menghapus', 'error') }
+>>>>>>> Stashed changes
   }
 
   const handleSaveProfile = async (e) => {
-    e.preventDefault()
-    setAdminLoading(true)
+    e.preventDefault(); setAdminLoading(true)
     try {
+<<<<<<< Updated upstream
       const res = await fetch(`${API}/api/profile/info`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(profileForm) })
+=======
+      const res = await fetch('http://localhost:5000/api/profile/info', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(profileForm) })
+>>>>>>> Stashed changes
       const data = await res.json()
       if (res.ok && data.success) { setVillageInfo(profileForm); showToast('Profil diperbarui! 🏛️', 'success') }
       else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') }
@@ -637,6 +804,7 @@ function App() {
   }
 
   // ==========================================
+<<<<<<< Updated upstream
   // RENDER: LOGIN PAGE
   // ==========================================
   if (adminView === 'login') {
@@ -647,10 +815,355 @@ function App() {
         adminLoading={adminLoading}
         onBack={() => setAdminView('home')}
       />
+=======
+  // RENDER: LOGIN PAGE (INTERAKTIF)
+  // PERBAIKAN: Hooks sudah di level atas, aman dari error!
+  // ==========================================
+  if (adminView === 'login') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+        {/* Animated Background Bubbles */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              width: `${100 + i * 50}px`,
+              height: `${100 + i * 50}px`,
+              background: 'rgba(255,255,255,0.08)',
+              borderRadius: '50%',
+              top: `${(i * 17) % 100}%`,
+              left: `${(i * 23) % 100}%`,
+              animation: `floatBubble ${6 + i}s ease-in-out infinite`,
+              animationDelay: `${i * 0.5}s`
+            }}></div>
+          ))}
+        </div>
+
+        {/* Mouse Follow Glow Effect */}
+        <div style={{
+          position: 'absolute',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+          borderRadius: '50%',
+          left: mousePos.x - 200,
+          top: mousePos.y - 200,
+          pointerEvents: 'none',
+          transition: 'all 0.3s ease-out'
+        }}></div>
+
+        {/* Main Login Card */}
+        <div style={{
+          background: 'rgba(255,255,255,0.98)',
+          backdropFilter: 'blur(20px)',
+          padding: '50px 40px',
+          borderRadius: '24px',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)',
+          width: '100%',
+          maxWidth: '440px',
+          position: 'relative',
+          zIndex: 1,
+          animation: 'slideUpLogin 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transform: 'translateY(0)'
+        }}>
+          {/* Animated Icon */}
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{
+              width: '100px',
+              height: '100px',
+              margin: '0 auto 20px',
+              background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '50px',
+              boxShadow: '0 15px 35px rgba(45, 138, 94, 0.4)',
+              animation: 'pulseIcon 2s ease-in-out infinite',
+              position: 'relative'
+            }}>
+              🔐
+              <div style={{
+                position: 'absolute',
+                inset: '-5px',
+                borderRadius: '50%',
+                border: '3px solid rgba(45, 138, 94, 0.3)',
+                animation: 'ripple 2s ease-out infinite'
+              }}></div>
+            </div>
+            <h2 style={{ color: '#1e293b', marginBottom: '8px', fontSize: '32px', fontWeight: '800', letterSpacing: '-0.5px' }}>Login Admin</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Kelurahan Woloan Dua, Kota Tomohon</p>
+          </div>
+
+          {/* Error Message */}
+          {adminError && (
+            <div style={{
+              background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+              color: '#dc2626',
+              padding: '14px 16px',
+              borderRadius: '12px',
+              marginBottom: '20px',
+              fontSize: '14px',
+              borderLeft: '4px solid #dc2626',
+              animation: 'shakeError 0.5s ease-in-out',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <span style={{ fontWeight: '500' }}>{adminError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin}>
+            {/* Username Field */}
+            <div style={{ marginBottom: '20px', position: 'relative' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                color: '#374151',
+                fontWeight: '600',
+                fontSize: '14px',
+                transition: 'all 0.3s'
+              }}>
+                <span style={{ marginRight: '6px' }}>👤</span>Username
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  name="username"
+                  placeholder="Masukkan username"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    border: `2px solid ${inputFocus.username ? '#2d8a5e' : '#e2e8f0'}`,
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    transition: 'all 0.3s',
+                    background: inputFocus.username ? '#f0fdf4' : 'white',
+                    boxShadow: inputFocus.username ? '0 0 0 4px rgba(45, 138, 94, 0.1)' : 'none'
+                  }}
+                  onFocus={() => setInputFocus({...inputFocus, username: true})}
+                  onBlur={() => setInputFocus({...inputFocus, username: false})}
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div style={{ marginBottom: '20px', position: 'relative' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                color: '#374151',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                <span style={{ marginRight: '6px' }}></span>Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Masukkan password"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '14px 50px 14px 16px',
+                    border: `2px solid ${inputFocus.password ? '#2d8a5e' : '#e2e8f0'}`,
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    transition: 'all 0.3s',
+                    background: inputFocus.password ? '#f0fdf4' : 'white',
+                    boxShadow: inputFocus.password ? '0 0 0 4px rgba(45, 138, 94, 0.1)' : 'none'
+                  }}
+                  onFocus={() => setInputFocus({...inputFocus, password: true})}
+                  onBlur={() => setInputFocus({...inputFocus, password: false})}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '20px',
+                    padding: '4px',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '25px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#475569'
+            }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  accentColor: '#2d8a5e',
+                  cursor: 'pointer'
+                }}
+              />
+              <span style={{ userSelect: 'none' }}>Ingat saya</span>
+            </label>
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={adminLoading}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: adminLoading
+                  ? 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)'
+                  : 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                cursor: adminLoading ? 'not-allowed' : 'pointer',
+                boxShadow: adminLoading ? 'none' : '0 10px 25px rgba(45, 138, 94, 0.4)',
+                transition: 'all 0.3s',
+                transform: adminLoading ? 'scale(0.98)' : 'scale(1)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              onMouseEnter={(e) => { if (!adminLoading) { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 15px 35px rgba(45, 138, 94, 0.5)' }}}
+              onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; e.target.style.boxShadow = adminLoading ? 'none' : '0 10px 25px rgba(45, 138, 94, 0.4)' }}
+            >
+              {adminLoading ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <span style={{
+                    width: '20px',
+                    height: '20px',
+                    border: '3px solid rgba(255,255,255,0.3)',
+                    borderTop: '3px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                    display: 'inline-block'
+                  }}></span>
+                  Memproses...
+                </span>
+              ) : 'Masuk ke Dashboard'}
+            </button>
+          </form>
+
+          {/* Back Button */}
+          <button
+            onClick={() => setAdminView('home')}
+            style={{
+              width: '100%',
+              marginTop: '15px',
+              padding: '14px',
+              background: 'transparent',
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              color: '#64748b',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#f0fdf4';
+              e.target.style.borderColor = '#2d8a5e';
+              e.target.style.color = '#2d8a5e';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent';
+              e.target.style.borderColor = '#e2e8f0';
+              e.target.style.color = '#64748b';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>🏠</span> Kembali ke Website
+          </button>
+
+          {/* Footer Info */}
+          <div style={{
+            marginTop: '25px',
+            paddingTop: '20px',
+            borderTop: '1px solid #e2e8f0',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+              🔒 Login aman dengan enkripsi SSL
+            </p>
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#cbd5e1' }}>
+              © 2026 Kelurahan Woloan Dua
+            </p>
+          </div>
+        </div>
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes slideUpLogin {
+            from { opacity: 0; transform: translateY(50px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @keyframes floatBubble {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            33% { transform: translateY(-30px) translateX(20px); }
+            66% { transform: translateY(20px) translateX(-20px); }
+          }
+          @keyframes pulseIcon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          @keyframes ripple {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+          }
+          @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+      </div>
+>>>>>>> Stashed changes
     )
   }
 
   // ==========================================
+<<<<<<< Updated upstream
   // HELPER TAMPILAN ADMIN
   // ==========================================
   const c = {
@@ -706,6 +1219,21 @@ function App() {
     { id: 'galleries', label: 'Galeri Foto', icon: '🖼️' },
     { id: 'map', label: 'Peta Desa', icon: '🗺️' },
     { id: 'articles', label: 'Berita', icon: '📰' }
+=======
+  // ADMIN MENU & LAYOUT
+  // PERBAIKAN: renderModal() DIHAPUS dari sini
+  // ==========================================
+  const adminMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊', color: '#2d8a5e' },
+    { id: 'letters', label: 'Pengajuan Surat', icon: '', color: '#10b981' },
+    { id: 'complaints', label: 'Pengaduan', icon: '', color: '#f59e0b' },
+    { id: 'profile', label: 'Profil Kelurahan', icon: '🏛️', color: '#10b981' },
+    { id: 'officials', label: 'Perangkat Desa', icon: '👨‍', color: '#059669' },
+    { id: 'stats', label: 'Statistik', icon: '📈', color: '#14b8a6' },
+    { id: 'galleries', label: 'Galeri Foto', icon: '🖼️', color: '#0d9488' },
+    { id: 'map', label: 'Peta Desa', icon: '🗺️', color: '#059669' },
+    { id: 'articles', label: 'Berita', icon: '📰', color: '#1e5d3f' }
+>>>>>>> Stashed changes
   ]
 
   const pendingLetters = letterSubmissions.filter(s => s.status === 'pending').length
@@ -716,6 +1244,7 @@ function App() {
 
   const AdminLayoutComponent = ({ children, title }) => (
     <div style={{ minHeight: '100vh', background: darkMode ? '#0f172a' : '#f1f5f9', display: 'flex', transition: 'all 0.3s' }}>
+<<<<<<< Updated upstream
       <aside style={{ width: sidebarCollapsed ? '80px' : '280px', background: darkMode ? 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)' : 'linear-gradient(180deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', padding: '20px 0', position: 'fixed', height: '100vh', overflowY: 'auto', transition: 'all 0.3s ease', zIndex: 100, boxShadow: '4px 0 20px rgba(0,0,0,0.1)' }}>
         <div style={{ padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {!sidebarCollapsed && (
@@ -725,6 +1254,19 @@ function App() {
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Admin Panel</h3>
                 <p style={{ margin: 0, fontSize: '11px', opacity: 0.8 }}>Kelurahan Woloan Dua</p>
               </div>
+=======
+      <aside style={{
+        width: sidebarCollapsed ? '80px' : '280px',
+        background: darkMode ? 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)' : 'linear-gradient(180deg, #2d8a5e 0%, #1e5d3f 100%)',
+        color: 'white', padding: '20px 0', position: 'fixed', height: '100vh', overflowY: 'auto',
+        transition: 'all 0.3s ease', zIndex: 100, boxShadow: '4px 0 20px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {!sidebarCollapsed && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img src={tomohon} alt="Logo Tomohon" style={{ width: '45px', height: '45px', objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }} />
+              <div><h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Admin Panel</h3><p style={{ margin: 0, fontSize: '11px', opacity: 0.8 }}>Kelurahan Woloan Dua</p></div>
+>>>>>>> Stashed changes
             </div>
           )}
           <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>
@@ -733,9 +1275,20 @@ function App() {
         </div>
         <nav style={{ padding: '0 10px' }}>
           {adminMenuItems.map(item => (
+<<<<<<< Updated upstream
             <button key={item.id} onClick={() => setAdminPage(item.id)} style={{ width: '100%', padding: sidebarCollapsed ? '14px 0' : '14px 16px', background: adminPage === item.id ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: adminPage === item.id ? '700' : '500', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', gap: '12px', marginBottom: '6px', transition: 'all 0.3s', boxShadow: adminPage === item.id ? '0 4px 15px rgba(0,0,0,0.2)' : 'none' }}
               onMouseEnter={(e) => { if (adminPage !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
               onMouseLeave={(e) => { if (adminPage !== item.id) e.currentTarget.style.background = 'transparent' }}>
+=======
+            <button key={item.id} onClick={() => setAdminPage(item.id)} style={{
+              width: '100%', padding: sidebarCollapsed ? '14px 0' : '14px 16px',
+              background: adminPage === item.id ? 'rgba(255,255,255,0.2)' : 'transparent',
+              color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer',
+              textAlign: sidebarCollapsed ? 'center' : 'left', fontSize: '14px', fontWeight: adminPage === item.id ? '700' : '500',
+              display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px',
+              transition: 'all 0.3s', boxShadow: adminPage === item.id ? '0 4px 15px rgba(0,0,0,0.2)' : 'none'
+            }} onMouseEnter={(e) => { if (adminPage !== item.id) e.target.style.background = 'rgba(255,255,255,0.1)' }} onMouseLeave={(e) => { if (adminPage !== item.id) e.target.style.background = 'transparent' }}>
+>>>>>>> Stashed changes
               <span style={{ fontSize: '20px' }}>{item.icon}</span>
               {!sidebarCollapsed && <span>{item.label}</span>}
               {!sidebarCollapsed && item.id === 'letters' && badge(pendingLetters)}
@@ -745,13 +1298,14 @@ function App() {
         </nav>
         <div style={{ padding: '20px 10px', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '20px' }}>
           <button onClick={() => setAdminView('home')} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.15)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '13px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', gap: '10px', fontWeight: '600' }}>
-            <span>🌐</span> {!sidebarCollapsed && 'Lihat Website'}
+            <span></span> {!sidebarCollapsed && 'Lihat Website'}
           </button>
           <button onClick={handleAdminLogout} style={{ width: '100%', padding: '12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', gap: '10px', fontWeight: '600' }}>
             <span>🚪</span> {!sidebarCollapsed && 'Logout'}
           </button>
         </div>
       </aside>
+<<<<<<< Updated upstream
 
       <div style={{ marginLeft: sidebarCollapsed ? '80px' : '280px', flex: 1, transition: 'all 0.3s', minWidth: 0 }}>
         <header style={{ background: c.card, padding: '16px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -760,6 +1314,26 @@ function App() {
             <input type="text" placeholder="🔍 Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
               style={{ padding: '10px 16px', border: `2px solid ${c.line}`, borderRadius: '12px', background: c.inner, color: c.text, outline: 'none', width: '200px', fontSize: '14px' }} />
             <button onClick={() => setDarkMode(!darkMode)} title={darkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'} style={{ width: '42px', height: '42px', borderRadius: '12px', border: 'none', background: darkMode ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' : 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
+=======
+      <div style={{ marginLeft: sidebarCollapsed ? '80px' : '280px', flex: 1, transition: 'all 0.3s' }}>
+        <header style={{
+          background: darkMode ? '#1e293b' : 'white',
+          padding: '16px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 50
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <h2 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>{title}</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <input type="text" placeholder="🔍 Cari..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ padding: '10px 16px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : '#f8fafc', color: darkMode ? 'white' : '#1e293b', outline: 'none', width: '200px', fontSize: '14px' }} />
+            <button onClick={() => setDarkMode(!darkMode)} style={{
+              width: '42px', height: '42px', borderRadius: '12px', border: 'none',
+              background: darkMode ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' : 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.3s', boxShadow: '0 4px 15px rgba(0,0,0,0.15)'
+            }} onMouseEnter={(e) => e.target.style.transform = 'scale(1.1) rotate(15deg)'} onMouseLeave={(e) => e.target.style.transform = 'scale(1) rotate(0deg)'} title={darkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}>
+>>>>>>> Stashed changes
               {darkMode ? (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="5"></circle>
@@ -775,7 +1349,15 @@ function App() {
               )}
             </button>
             <div style={{ position: 'relative' }}>
+<<<<<<< Updated upstream
               <button onClick={() => setShowNotifications(!showNotifications)} style={{ width: '42px', height: '42px', borderRadius: '12px', border: 'none', background: darkMode ? '#334155' : '#f1f5f9', cursor: 'pointer', fontSize: '18px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+=======
+              <button onClick={() => setShowNotifications(!showNotifications)} style={{
+                width: '42px', height: '42px', borderRadius: '12px', border: 'none',
+                background: darkMode ? '#334155' : '#f1f5f9', cursor: 'pointer', fontSize: '18px',
+                position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+>>>>>>> Stashed changes
                 🔔
                 {(pendingLetters > 0 || pendingComplaints > 0) && (
                   <span style={{ position: 'absolute', top: '8px', right: '8px', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: `2px solid ${c.card}`, animation: 'pulse 2s infinite' }}></span>
@@ -791,7 +1373,11 @@ function App() {
                   )}
                   {pendingComplaints > 0 && (
                     <div style={{ padding: '12px', background: darkMode ? '#0f172a' : '#fef3c7', borderRadius: '10px' }}>
+<<<<<<< Updated upstream
                       <p style={{ margin: 0, fontSize: '13px', color: c.text }}>📢 {pendingComplaints} pengaduan baru</p>
+=======
+                      <p style={{ margin: 0, fontSize: '13px', color: darkMode ? 'white' : '#1e293b' }}> {complaintSubmissions.filter(s => s.status === 'pending').length} pengaduan baru</p>
+>>>>>>> Stashed changes
                     </div>
                   )}
                   {pendingLetters === 0 && pendingComplaints === 0 && <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Tidak ada notifikasi baru</p>}
@@ -799,7 +1385,14 @@ function App() {
               )}
             </div>
             <div style={{ position: 'relative' }}>
+<<<<<<< Updated upstream
               <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 12px 6px 6px', background: darkMode ? '#334155' : '#f1f5f9', border: 'none', borderRadius: '30px', cursor: 'pointer' }}>
+=======
+              <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 12px 6px 6px',
+                background: darkMode ? '#334155' : '#f1f5f9', border: 'none', borderRadius: '30px', cursor: 'pointer'
+              }}>
+>>>>>>> Stashed changes
                 <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px' }}>
                   {adminName.charAt(0).toUpperCase()}
                 </div>
@@ -811,7 +1404,11 @@ function App() {
                     <p style={{ margin: 0, fontWeight: '700', color: c.text, fontSize: '14px' }}>{adminName}</p>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>Administrator</p>
                   </div>
+<<<<<<< Updated upstream
                   <button onClick={() => { setShowProfileMenu(false); setAdminPage('profile') }} style={{ width: '100%', padding: '10px', background: 'transparent', border: 'none', color: c.text, cursor: 'pointer', textAlign: 'left', fontSize: '13px', borderRadius: '8px' }}>⚙️ Pengaturan</button>
+=======
+                  <button onClick={() => { setShowProfileMenu(false); setAdminPage('profile'); }} style={{ width: '100%', padding: '10px', background: 'transparent', border: 'none', color: darkMode ? 'white' : '#1e293b', cursor: 'pointer', textAlign: 'left', fontSize: '13px', borderRadius: '8px' }}>⚙️ Pengaturan</button>
+>>>>>>> Stashed changes
                   <button onClick={handleAdminLogout} style={{ width: '100%', padding: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', textAlign: 'left', fontSize: '13px', borderRadius: '8px' }}>🚪 Logout</button>
                 </div>
               )}
@@ -820,9 +1417,13 @@ function App() {
         </header>
         <div style={{ padding: '30px' }}>{children}</div>
       </div>
+<<<<<<< Updated upstream
 
       {renderModal()}
 
+=======
+      {/* PERBAIKAN: renderModal() DIHAPUS dari sini - dipindahkan ke level App return */}
+>>>>>>> Stashed changes
       <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {toasts.map(toast => (
           <div key={toast.id} style={{ padding: '16px 24px', borderRadius: '12px', color: 'white', fontWeight: '600', fontSize: '14px', background: toast.type === 'success' ? 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)' : toast.type === 'error' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', animation: 'slideInRight 0.4s', minWidth: '250px' }}>
@@ -845,6 +1446,7 @@ function App() {
   // ==========================================
   if (adminView === 'admin' && adminPage === 'dashboard') {
     const stats = [
+<<<<<<< Updated upstream
       { label: 'Total Berita', value: animatedStats.articles, icon: '📰', bg: '#dcfce7', change: '+12%' },
       { label: 'Perangkat Desa', value: animatedStats.officials, icon: '👨‍💼', bg: '#d1fae5', change: '+5%' },
       { label: 'Data Statistik', value: animatedStats.stats, icon: '📊', bg: '#ccfbf1', change: '+8%' },
@@ -861,6 +1463,12 @@ function App() {
       { label: 'Pengaduan Baru', status: pendingComplaints, color: '#ef4444', icon: '📢' },
       { label: 'Kunjungan Hari Ini', status: visitorCount, color: '#2d8a5e', icon: '👥' },
       { label: 'Total Konten', status: articles.length + statistics.length + galleries.length, color: '#059669', icon: '📁' }
+=======
+      { label: 'Total Berita', value: animatedStats.articles, icon: '', color: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', bg: '#dcfce7', change: '+12%' },
+      { label: 'Perangkat Desa', value: animatedStats.officials, icon: '‍💼', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', bg: '#d1fae5', change: '+5%' },
+      { label: 'Data Statistik', value: animatedStats.stats, icon: '📊', color: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', bg: '#ccfbf1', change: '+8%' },
+      { label: 'Foto Galeri', value: animatedStats.galleries, icon: '🖼️', color: 'linear-gradient(135deg, #059669 0%, #047857 100%)', bg: '#a7f3d0', change: '+15%' }
+>>>>>>> Stashed changes
     ]
     return (
       <AdminLayout title="Dashboard">
@@ -870,8 +1478,13 @@ function App() {
             <h1 style={{ fontSize: '36px', marginBottom: '10px', fontWeight: '800' }}>Selamat Datang, {adminName}! 👋</h1>
             <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '25px' }}>Kelola konten website Kelurahan Woloan Dua</p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+<<<<<<< Updated upstream
               <button onClick={() => setAdminPage('articles')} style={{ padding: '14px 28px', background: 'white', color: '#2d8a5e', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>📰 Kelola Berita</button>
               <button onClick={() => setAdminPage('profile')} style={{ padding: '14px 28px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>🏛️ Edit Profil</button>
+=======
+              <button onClick={() => setAdminPage('articles')} style={{ padding: '14px 28px', background: 'white', color: '#2d8a5e', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }} onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}> Kelola Berita</button>
+              <button onClick={() => setAdminPage('profile')} style={{ padding: '14px 28px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }} onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'} onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}>🏛️ Edit Profil</button>
+>>>>>>> Stashed changes
             </div>
           </div>
         </div>
@@ -880,6 +1493,7 @@ function App() {
           {stats.map((stat, i) => (
             <div key={i} style={{ ...cardStyle, transition: 'all 0.3s' }} {...lift}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+<<<<<<< Updated upstream
                 <div>
                   <p style={{ color: c.sub, fontSize: '13px', margin: '0 0 8px', fontWeight: '600' }}>{stat.label}</p>
                   <h3 style={{ color: c.text, fontSize: '36px', margin: 0, fontWeight: '800' }}>{stat.value}</h3>
@@ -888,6 +1502,12 @@ function App() {
               </div>
               <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '700' }}>↑ {stat.change}</span>
               <span style={{ color: darkMode ? '#64748b' : '#94a3b8', fontSize: '12px', marginLeft: '6px' }}>dari bulan lalu</span>
+=======
+                <div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', margin: '0 0 8px', fontWeight: '600' }}>{stat.label}</p><h3 style={{ color: darkMode ? 'white' : '#1e293b', fontSize: '36px', margin: 0, fontWeight: '800' }}>{stat.value}</h3></div>
+                <div style={{ width: '55px', height: '55px', background: stat.bg, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{stat.icon}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#10b981', fontSize: '13px', fontWeight: '700' }}>↑ {stat.change}</span><span style={{ color: darkMode ? '#64748b' : '#94a3b8', fontSize: '12px' }}>dari bulan lalu</span></div>
+>>>>>>> Stashed changes
             </div>
           ))}
         </div>
@@ -896,16 +1516,29 @@ function App() {
           <div style={cardStyle}>
             <h3 style={{ color: c.text, marginTop: 0, marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}>⚡ Aksi Cepat</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+<<<<<<< Updated upstream
               {quickActions.map((a, i) => (
                 <button key={i} onClick={a.action} style={{ padding: '20px', background: c.inner, border: `2px solid ${c.line}`, borderRadius: '16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s', display: 'flex', alignItems: 'center', gap: '15px' }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.transform = 'translateY(-3px)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = c.line; e.currentTarget.style.transform = 'translateY(0)' }}>
                   <div style={{ width: '45px', height: '45px', background: a.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>{a.icon}</div>
                   <span style={{ color: c.text, fontWeight: '600', fontSize: '14px' }}>{a.label}</span>
+=======
+              {[
+                { label: 'Tambah Berita', icon: '', color: '#2d8a5e', action: () => openAddForm('article') },
+                { label: 'Tambah Perangkat', icon: '👨‍💼', color: '#10b981', action: () => openAddForm('official') },
+                { label: 'Tambah Statistik', icon: '📈', color: '#14b8a6', action: () => openAddForm('stat') },
+                { label: 'Tambah Foto', icon: '🖼️', color: '#059669', action: () => openAddForm('gallery') }
+              ].map((action, i) => (
+                <button key={i} onClick={action.action} style={{ padding: '20px', background: darkMode ? '#0f172a' : '#f8fafc', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s', display: 'flex', alignItems: 'center', gap: '15px' }} onMouseEnter={(e) => { e.target.style.borderColor = action.color; e.target.style.transform = 'translateY(-3px)' }} onMouseLeave={(e) => { e.target.style.borderColor = darkMode ? '#334155' : '#e2e8f0'; e.target.style.transform = 'translateY(0)' }}>
+                  <div style={{ width: '45px', height: '45px', background: action.color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>{action.icon}</div>
+                  <span style={{ color: darkMode ? 'white' : '#1e293b', fontWeight: '600', fontSize: '14px' }}>{action.label}</span>
+>>>>>>> Stashed changes
                 </button>
               ))}
             </div>
           </div>
+<<<<<<< Updated upstream
           <div style={cardStyle}>
             <h3 style={{ color: c.text, marginTop: 0, marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}>📡 Ringkasan</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -915,6 +1548,19 @@ function App() {
                     <span style={{ fontSize: '20px' }}>{item.icon}</span>
                     <span style={{ color: c.text, fontSize: '13px', fontWeight: '600' }}>{item.label}</span>
                   </div>
+=======
+          <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+            <h3 style={{ color: darkMode ? 'white' : '#1e293b', marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}> Status Sistem</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {[
+                { label: 'Server Backend', status: 'Online', color: '#10b981', icon: '✅' },
+                { label: 'Database MySQL', status: 'Terhubung', color: '#10b981', icon: '️' },
+                { label: 'Kunjungan Hari Ini', status: visitorCount, color: '#2d8a5e', icon: '' },
+                { label: 'Total Konten', status: articles.length + statistics.length + galleries.length, color: '#059669', icon: '📁' }
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: darkMode ? '#0f172a' : '#f8fafc', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '20px' }}>{item.icon}</span><span style={{ color: darkMode ? 'white' : '#1e293b', fontSize: '13px', fontWeight: '600' }}>{item.label}</span></div>
+>>>>>>> Stashed changes
                   <span style={{ color: item.color, fontSize: '13px', fontWeight: '700' }}>{item.status}</span>
                 </div>
               ))}
@@ -925,7 +1571,9 @@ function App() {
     )
   }
 
+  // Halaman Pengajuan Surat
   if (adminView === 'admin' && adminPage === 'letters') {
+<<<<<<< Updated upstream
     const q = searchQuery.toLowerCase()
     const list = letterSubmissions.filter(l => (l.name || '').toLowerCase().includes(q) || (l.type || '').toLowerCase().includes(q))
     const statusMap = {
@@ -968,13 +1616,44 @@ function App() {
                 </div>
               )
             })}
+=======
+    const filteredLetters = letterSubmissions.filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.type.toLowerCase().includes(searchQuery.toLowerCase()))
+    return (
+      <AdminLayoutComponent title="Pengajuan Surat Online">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Pengajuan ({filteredLetters.length})</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Kelola pengajuan surat dari warga</p></div></div>
+        {filteredLetters.length === 0 ? (<div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}><div style={{ fontSize: '60px', marginBottom: '15px' }}>📋</div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada pengajuan surat</p></div>) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {filteredLetters.map((letter) => (
+              <div key={letter.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                  <div><h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 8px', fontSize: '18px', fontWeight: '700' }}>{letter.name}</h4><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '14px' }}>📞 {letter.phone} • 📍 {letter.address}</p></div>
+                  <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: letter.status === 'pending' ? '#fef3c7' : letter.status === 'processed' ? '#d1fae5' : '#fee2e2', color: letter.status === 'pending' ? '#92400e' : letter.status === 'processed' ? '#065f46' : '#991b1b' }}>
+                    {letter.status === 'pending' ? '⏳ Menunggu' : letter.status === 'processed' ? '✅ Diproses' : ' Ditolak'}
+                  </span>
+                </div>
+                <div style={{ background: darkMode ? '#0f172a' : '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                  <p style={{ margin: '0 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Jenis Surat:</p>
+                  <p style={{ margin: '0 0 12px', color: darkMode ? 'white' : '#1e293b', fontWeight: '600' }}>{letter.type}</p>
+                  <p style={{ margin: '0 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Keperluan:</p>
+                  <p style={{ margin: 0, color: darkMode ? 'white' : '#1e293b' }}>{letter.purpose}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {letter.status === 'pending' && (<><button onClick={() => updateLetterStatus(letter.id, 'processed')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>✅ Tandai Diproses</button><button onClick={() => updateLetterStatus(letter.id, 'rejected')} style={{ padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>❌ Tolak</button></>)}
+                  <button onClick={() => deleteLetterSubmission(letter.id)} style={{ padding: '10px 20px', background: darkMode ? '#334155' : '#e2e8f0', color: darkMode ? 'white' : '#64748b', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>️ Hapus</button>
+                </div>
+                <p style={{ margin: '12px 0 0', fontSize: '12px', color: darkMode ? '#64748b' : '#94a3b8' }}>📅 Diajukan: {new Date(letter.submittedAt).toLocaleString('id-ID')}</p>
+              </div>
+            ))}
+>>>>>>> Stashed changes
           </div>
         )}
       </AdminLayout>
     )
   }
 
+  // Halaman Pengaduan
   if (adminView === 'admin' && adminPage === 'complaints') {
+<<<<<<< Updated upstream
     const q = searchQuery.toLowerCase()
     const list = complaintSubmissions.filter(x => (x.message || '').toLowerCase().includes(q) || (x.category || '').toLowerCase().includes(q))
     const statusMap = {
@@ -1019,14 +1698,45 @@ function App() {
                 </div>
               )
             })}
+=======
+    const filteredComplaints = complaintSubmissions.filter(c => c.message.toLowerCase().includes(searchQuery.toLowerCase()) || c.category.toLowerCase().includes(searchQuery.toLowerCase()))
+    return (
+      <AdminLayoutComponent title="Pengaduan Warga">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Pengaduan ({filteredComplaints.length})</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Kelola pengaduan dan saran dari warga</p></div></div>
+        {filteredComplaints.length === 0 ? (<div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}><div style={{ fontSize: '60px', marginBottom: '15px' }}>📢</div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada pengaduan</p></div>) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {filteredComplaints.map((complaint) => (
+              <div key={complaint.id} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                  <div><h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 8px', fontSize: '18px', fontWeight: '700' }}>{complaint.anonymous ? '👤 Anonim' : complaint.name}</h4><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '14px' }}>{complaint.phone && `📞 ${complaint.phone} • `}{complaint.location && `📍 ${complaint.location}`}</p></div>
+                  <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: complaint.status === 'pending' ? '#fef3c7' : complaint.status === 'resolved' ? '#d1fae5' : '#e0f2fe', color: complaint.status === 'pending' ? '#92400e' : complaint.status === 'resolved' ? '#065f46' : '#0369a1' }}>
+                    {complaint.status === 'pending' ? '⏳ Baru' : complaint.status === 'resolved' ? '✅ Selesai' : '🔄 Dalam Proses'}
+                  </span>
+                </div>
+                <div style={{ background: darkMode ? '#0f172a' : '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                  <p style={{ margin: '0 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Kategori: <span style={{ color: darkMode ? 'white' : '#1e293b' }}>{complaint.category}</span></p>
+                  <p style={{ margin: '12px 0 8px', color: darkMode ? '#94a3b8' : '#64748b', fontSize: '13px', fontWeight: '600' }}>Isi Pengaduan:</p>
+                  <p style={{ margin: 0, color: darkMode ? 'white' : '#1e293b', lineHeight: '1.6' }}>{complaint.message}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {complaint.status === 'pending' && (<><button onClick={() => updateComplaintStatus(complaint.id, 'in_progress')} style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>🔄 Proses</button><button onClick={() => updateComplaintStatus(complaint.id, 'resolved')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>✅ Selesai</button></>)}
+                  {complaint.status === 'in_progress' && (<button onClick={() => updateComplaintStatus(complaint.id, 'resolved')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>✅ Tandai Selesai</button>)}
+                  <button onClick={() => deleteComplaintSubmission(complaint.id)} style={{ padding: '10px 20px', background: darkMode ? '#334155' : '#e2e8f0', color: darkMode ? 'white' : '#64748b', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>🗑️ Hapus</button>
+                </div>
+                <p style={{ margin: '12px 0 0', fontSize: '12px', color: darkMode ? '#64748b' : '#94a3b8' }}>📅 Dikirim: {new Date(complaint.submittedAt).toLocaleString('id-ID')}</p>
+              </div>
+            ))}
+>>>>>>> Stashed changes
           </div>
         )}
       </AdminLayout>
     )
   }
 
+  // Halaman Profil
   if (adminView === 'admin' && adminPage === 'profile') {
     return (
+<<<<<<< Updated upstream
       <AdminLayout title="Kelola Profil Kelurahan">
         <div style={{ ...cardStyle, padding: '30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px', paddingBottom: '20px', borderBottom: `2px solid ${darkMode ? '#334155' : '#f1f5f9'}` }}>
@@ -1054,24 +1764,45 @@ function App() {
             <button type="submit" disabled={adminLoading} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.4)' }}>
               {adminLoading ? '⏳ Menyimpan...' : '💾 Simpan Perubahan'}
             </button>
+=======
+      <AdminLayoutComponent title="Kelola Profil Kelurahan">
+        <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px', paddingBottom: '20px', borderBottom: `2px solid ${darkMode ? '#334155' : '#f1f5f9'}` }}><div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>️</div><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>Informasi Kelurahan</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Edit informasi dasar kelurahan</p></div></div>
+          <form onSubmit={handleSaveProfile}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📛 Nama Kelurahan</label><input type="text" value={profileForm.name || ''} onChange={e => setProfileForm({...profileForm, name: e.target.value})} required style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }} /></div>
+              <div><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📞 Telepon</label><input type="text" value={profileForm.phone || ''} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} required style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }} /></div>
+            </div>
+            <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📍 Alamat</label><input type="text" value={profileForm.address || ''} onChange={e => setProfileForm({...profileForm, address: e.target.value})} required style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '15px' }} /></div>
+            <div style={{ marginBottom: '25px' }}><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}> Deskripsi</label><textarea value={profileForm.description || ''} onChange={e => setProfileForm({...profileForm, description: e.target.value})} required rows="5" style={{ width: '100%', padding: '14px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '15px', resize: 'vertical' }}></textarea></div>
+            <button type="submit" disabled={adminLoading} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.4)' }}>{adminLoading ? ' Menyimpan...' : '💾 Simpan Perubahan'}</button>
+>>>>>>> Stashed changes
           </form>
         </div>
       </AdminLayout>
     )
   }
 
+  // Halaman Perangkat
   if (adminView === 'admin' && adminPage === 'officials') {
     const q = searchQuery.toLowerCase()
     const list = sortedOfficials.filter(o => (o.name || '').toLowerCase().includes(q) || (o.position || '').toLowerCase().includes(q))
     return (
+<<<<<<< Updated upstream
       <AdminLayout title="Kelola Perangkat Desa">
         {pageHeader(`Daftar Perangkat (${list.length})`, 'Kelola struktur organisasi kelurahan',
           addButton('➕ Tambah Perangkat', 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 'rgba(16, 185, 129, 0.4)', () => openAddForm('official')))}
         {list.length === 0 ? emptyBox('👨‍💼', searchQuery ? 'Tidak ada hasil pencarian' : 'Belum ada data perangkat') : (
+=======
+      <AdminLayoutComponent title="Kelola Perangkat Desa">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Perangkat ({filteredOfficials.length})</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Kelola struktur organisasi kelurahan</p></div><button onClick={() => openAddForm('official')} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>➕ Tambah Perangkat</button></div>
+        {filteredOfficials.length === 0 ? (<div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}><div style={{ fontSize: '60px', marginBottom: '15px' }}>👨‍💼</div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>{searchQuery ? 'Tidak ada hasil pencarian' : 'Belum ada data perangkat'}</p></div>) : (
+>>>>>>> Stashed changes
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
             {list.map((o) => (
               <div key={getItemId(o)} style={{ ...cardStyle, transition: 'all 0.3s', position: 'relative', overflow: 'hidden' }} {...lift}>
                 <div style={{ position: 'absolute', top: 0, right: 0, width: '80px', height: '80px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '0 0 0 80px', opacity: 0.1 }}></div>
+<<<<<<< Updated upstream
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                   <div style={{ width: '55px', height: '55px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: 'bold' }}>{(o.name || '?').charAt(0).toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
@@ -1080,6 +1811,10 @@ function App() {
                   </div>
                 </div>
                 {editDeleteButtons('#10b981', () => openEditForm('official', o), () => handleDeleteOfficial(getItemId(o)))}
+=======
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}><div style={{ width: '55px', height: '55px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: 'bold' }}>{official.name.charAt(0).toUpperCase()}</div><div style={{ flex: 1 }}><h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '16px', fontWeight: '700' }}>{official.name}</h4><p style={{ color: '#10b981', margin: '4px 0 0', fontSize: '13px', fontWeight: '600' }}>{official.position}</p></div></div>
+                <div style={{ display: 'flex', gap: '8px' }}><button onClick={() => openEditForm('official', official)} style={{ flex: 1, padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button><button onClick={() => handleDeleteOfficial(getItemId(official))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button></div>
+>>>>>>> Stashed changes
               </div>
             ))}
           </div>
@@ -1088,21 +1823,35 @@ function App() {
     )
   }
 
+  // Halaman Statistik
   if (adminView === 'admin' && adminPage === 'stats') {
     const list = statistics.filter(s => (s.category || '').toLowerCase().includes(searchQuery.toLowerCase()))
     return (
+<<<<<<< Updated upstream
       <AdminLayout title="Kelola Statistik">
         {pageHeader(`Data Statistik (${list.length})`, 'Infografis dan data kelurahan',
           addButton('📈 Tambah Statistik', 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', 'rgba(20, 184, 166, 0.4)', () => openAddForm('stat')))}
         {list.length === 0 ? emptyBox('📈', 'Belum ada data statistik') : (
+=======
+      <AdminLayoutComponent title="Kelola Statistik">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Data Statistik ({filteredStats.length})</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Infografis dan data kelurahan</p></div><button onClick={() => openAddForm('stat')} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(20, 184, 166, 0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>➕ Tambah Statistik</button></div>
+        {filteredStats.length === 0 ? (<div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}><div style={{ fontSize: '60px', marginBottom: '15px' }}>📈</div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada data statistik</p></div>) : (
+>>>>>>> Stashed changes
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
             {list.map((s) => (
               <div key={getItemId(s)} style={{ ...cardStyle, transition: 'all 0.3s', textAlign: 'center' }} {...lift}>
                 <div style={{ width: '70px', height: '70px', margin: '0 auto 15px', background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>📊</div>
+<<<<<<< Updated upstream
                 <h3 style={{ color: c.text, fontSize: '32px', margin: '0 0 8px', fontWeight: '800' }}>{s.value}</h3>
                 <p style={{ color: '#14b8a6', margin: '0 0 8px', fontSize: '14px', fontWeight: '700' }}>{s.category}</p>
                 <p style={{ color: c.sub, margin: '0 0 20px', fontSize: '12px' }}>Tahun {s.year}</p>
                 {editDeleteButtons('#14b8a6', () => openEditForm('stat', s), () => handleDeleteStat(getItemId(s)))}
+=======
+                <h3 style={{ color: darkMode ? 'white' : '#1e293b', fontSize: '32px', margin: '0 0 8px', fontWeight: '800' }}>{stat.value}</h3>
+                <p style={{ color: '#14b8a6', margin: '0 0 8px', fontSize: '14px', fontWeight: '700' }}>{stat.category}</p>
+                <p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '0 0 20px', fontSize: '12px' }}>Tahun {stat.year}</p>
+                <div style={{ display: 'flex', gap: '8px' }}><button onClick={() => openEditForm('stat', stat)} style={{ flex: 1, padding: '10px', background: '#14b8a6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button><button onClick={() => handleDeleteStat(getItemId(stat))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button></div>
+>>>>>>> Stashed changes
               </div>
             ))}
           </div>
@@ -1111,9 +1860,11 @@ function App() {
     )
   }
 
+  // Halaman Galeri
   if (adminView === 'admin' && adminPage === 'galleries') {
     const list = galleries.filter(g => (g.title || '').toLowerCase().includes(searchQuery.toLowerCase()))
     return (
+<<<<<<< Updated upstream
       <AdminLayout title="Kelola Galeri Foto">
         {pageHeader(`Galeri Foto (${list.length})`, 'Dokumentasi kegiatan kelurahan',
           addButton('🖼️ Tambah Foto', 'linear-gradient(135deg, #059669 0%, #047857 100%)', 'rgba(5, 150, 105, 0.4)', () => openAddForm('gallery')))}
@@ -1129,6 +1880,16 @@ function App() {
                   <h4 style={{ color: c.text, margin: '0 0 15px', fontSize: '15px', fontWeight: '700' }}>{photo.title}</h4>
                   {editDeleteButtons('#059669', () => openEditForm('gallery', photo), () => handleDeleteGallery(getItemId(photo)))}
                 </div>
+=======
+      <AdminLayoutComponent title="Kelola Galeri Foto">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Galeri Foto ({filteredGalleries.length})</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Dokumentasi kegiatan kelurahan</p></div><button onClick={() => openAddForm('gallery')} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(5, 150, 105, 0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>🖼️ Tambah Foto</button></div>
+        {filteredGalleries.length === 0 ? (<div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}><div style={{ fontSize: '60px', marginBottom: '15px' }}>🖼️</div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada foto</p></div>) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+            {filteredGalleries.map((photo, i) => (
+              <div key={getItemId(photo)} style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, transition: 'all 0.3s' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)' }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)' }}>
+                <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}><img src={photo.image_url} alt={photo.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'} onMouseLeave={(e) => e.target.style.transform = 'scale(1)'} /><div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>#{i + 1}</div></div>
+                <div style={{ padding: '20px' }}><h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 15px', fontSize: '15px', fontWeight: '700' }}>{photo.title}</h4><div style={{ display: 'flex', gap: '8px' }}><button onClick={() => openEditForm('gallery', photo)} style={{ flex: 1, padding: '10px', background: '#059669', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button><button onClick={() => handleDeleteGallery(getItemId(photo))} style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button></div></div>
+>>>>>>> Stashed changes
               </div>
             ))}
           </div>
@@ -1137,9 +1898,11 @@ function App() {
     )
   }
 
+  // Halaman Peta
   if (adminView === 'admin' && adminPage === 'map') {
     const mapFieldStyle = { ...fieldStyle, padding: '12px', fontSize: '14px' }
     return (
+<<<<<<< Updated upstream
       <AdminLayout title="Kelola Peta Desa">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
           <div style={{ ...cardStyle, padding: '30px' }}>
@@ -1192,15 +1955,35 @@ function App() {
                 <p style={{ margin: '5px 0 0', fontSize: '18px', fontWeight: '800', color: '#059669' }}>{mapForm.lng}</p>
               </div>
             </div>
+=======
+      <AdminLayoutComponent title="Kelola Peta Desa">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+          <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px' }}><div style={{ width: '60px', height: '60px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' }}>️</div><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '22px', fontWeight: '800' }}>Koordinat Peta</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Atur lokasi kelurahan di peta</p></div></div>
+            <form onSubmit={async (e) => { e.preventDefault(); setAdminLoading(true); try { const res = await fetch('http://localhost:5000/api/profile/map', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': adminToken }, body: JSON.stringify(mapForm) }); const data = await res.json(); if (res.ok && data.success) { setMapCoordinates(mapForm); showToast('Peta berhasil diperbarui! 📍', 'success') } else { showToast('Gagal: ' + (data.error || data.message || ''), 'error') } } catch (err) { showToast('Terjadi kesalahan', 'error') } finally { setAdminLoading(false) } }}>
+              <div style={{ marginBottom: '18px' }}><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>📍 Alamat Lengkap</label><textarea value={mapForm.address || ''} onChange={e => setMapForm({...mapForm, address: e.target.value})} required rows="3" style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit', fontSize: '14px', resize: 'vertical' }}></textarea></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '18px' }}><div><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>Latitude</label><input type="number" step="0.0001" value={mapForm.lat || ''} onChange={e => setMapForm({...mapForm, lat: parseFloat(e.target.value)})} required style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} /></div><div><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>Longitude</label><input type="number" step="0.0001" value={mapForm.lng || ''} onChange={e => setMapForm({...mapForm, lng: parseFloat(e.target.value)})} required style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} /></div></div>
+              <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', color: darkMode ? 'white' : '#374151', fontWeight: '600', fontSize: '14px' }}>🔍 Zoom Level (1-20)</label><input type="number" min="1" max="20" value={mapForm.zoom || 15} onChange={e => setMapForm({...mapForm, zoom: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', border: `2px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: '12px', background: darkMode ? '#0f172a' : 'white', color: darkMode ? 'white' : '#1e293b', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} /></div>
+              <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #bbf7d0' }}><p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>💡 <strong>Cara dapat koordinat:</strong><br />1. Buka <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2d8a5e' }}>Google Maps</a><br />2. Klik kanan di lokasi kelurahan<br />3. Copy angka koordinat yang muncul</p></div>
+              <button type="submit" disabled={adminLoading} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(5, 150, 105, 0.4)' }}>{adminLoading ? '⏳ Menyimpan...' : '💾 Simpan Koordinat'}</button>
+            </form>
+          </div>
+          <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+            <h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 20px', fontSize: '20px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '24px' }}>👁️</span> Preview Peta</h3>
+            <div style={{ height: '350px', borderRadius: '16px', overflow: 'hidden', border: '3px solid #059669', marginBottom: '20px' }}><iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapForm.lng - 0.01}%2C${mapForm.lat - 0.01}%2C${mapForm.lng + 0.01}%2C${mapForm.lat + 0.01}&layer=mapnik&marker=${mapForm.lat}%2C${mapForm.lng}`} style={{ width: '100%', height: '100%', border: 'none' }} title="Preview Peta"></iframe></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}><div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Latitude</p><p style={{ margin: '5px 0 0', fontSize: '18px', fontWeight: '800', color: '#059669' }}>{mapForm.lat}</p></div><div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Longitude</p><p style={{ margin: '5px 0 0', fontSize: '18px', fontWeight: '800', color: '#059669' }}>{mapForm.lng}</p></div></div>
+>>>>>>> Stashed changes
           </div>
         </div>
       </AdminLayout>
     )
   }
 
+  // Halaman Berita
   if (adminView === 'admin' && adminPage === 'articles') {
     const list = articles.filter(a => (a.title || '').toLowerCase().includes(searchQuery.toLowerCase()))
     return (
+<<<<<<< Updated upstream
       <AdminLayout title="Kelola Berita">
         {pageHeader(`Daftar Berita (${list.length})`, 'Kelola semua berita yang dipublikasikan',
           addButton('➕ Tambah Berita', 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', 'rgba(45, 138, 94, 0.4)', () => openAddForm('article')))}
@@ -1219,6 +2002,17 @@ function App() {
                   <button onClick={() => openEditForm('article', article)} style={{ padding: '10px 18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button>
                   <button onClick={() => handleDeleteArticle(getItemId(article))} style={{ padding: '10px 18px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button>
                 </div>
+=======
+      <AdminLayoutComponent title="Kelola Berita">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}><div><h3 style={{ color: darkMode ? 'white' : '#1e293b', margin: 0, fontSize: '20px', fontWeight: '800' }}>Daftar Berita ({filteredArticles.length})</h3><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: '5px 0 0', fontSize: '14px' }}>Kelola semua berita yang dipublikasikan</p></div><button onClick={() => openAddForm('article')} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>➕ Tambah Berita</button></div>
+        {filteredArticles.length === 0 ? (<div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', padding: '60px 20px', textAlign: 'center', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}><div style={{ fontSize: '60px', marginBottom: '15px' }}>📰</div><p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '16px' }}>Belum ada berita</p></div>) : (
+          <div style={{ background: darkMode ? '#1e293b' : 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}` }}>
+            {filteredArticles.map((article, i) => (
+              <div key={getItemId(article)} style={{ padding: '20px 25px', display: 'flex', alignItems: 'center', gap: '20px', borderBottom: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, transition: 'all 0.3s' }} onMouseEnter={(e) => e.target.style.background = darkMode ? '#0f172a' : '#f0fdf4'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
+                <div style={{ width: '50px', height: '50px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '18px', flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}><h4 style={{ color: darkMode ? 'white' : '#1e293b', margin: '0 0 5px', fontSize: '16px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.title}</h4><p style={{ color: darkMode ? '#94a3b8' : '#64748b', margin: 0, fontSize: '13px' }}>✍️ {article.author || 'Admin'} • 📅 {article.created_at ? new Date(article.created_at).toLocaleDateString('id-ID') : '-'}</p></div>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}><button onClick={() => openEditForm('article', article)} style={{ padding: '10px 18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>✏️ Edit</button><button onClick={() => handleDeleteArticle(getItemId(article))} style={{ padding: '10px 18px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🗑️ Hapus</button></div>
+>>>>>>> Stashed changes
               </div>
             ))}
           </div>
@@ -1228,7 +2022,11 @@ function App() {
   }
 
   // ==========================================
+<<<<<<< Updated upstream
   // MODAL ADMIN (CRUD)
+=======
+  // PERBAIKAN: renderModal() dipindahkan ke LEVEL APP (bukan di AdminLayoutComponent)
+>>>>>>> Stashed changes
   // ==========================================
   function renderModal() {
     if (!showModal) return null
@@ -1242,12 +2040,21 @@ function App() {
       official: { title: isEditMode ? '✏️ Edit Perangkat' : '➕ Tambah Perangkat Baru', icon: '👨‍💼', color: '#10b981', data: officialForm, setData: setOfficialForm, onSave: handleAddOfficial, fields: [
         { name: 'name', label: 'Nama Lengkap *', type: 'text', required: true },
         { name: 'position', label: 'Jabatan *', type: 'select', required: true, options: ['Lurah', 'Sekretaris Lurah', 'Kepala Seksi Pemerintahan', 'Kepala Seksi Pelayanan', 'Kepala Seksi Kesejahteraan', 'Ketua RW', 'Ketua RT', 'Lainnya'] }
+<<<<<<< Updated upstream
       ] },
       stat: { title: isEditMode ? '✏️ Edit Statistik' : '➕ Tambah Statistik Baru', icon: '📈', color: '#14b8a6', data: statForm, setData: setStatForm, onSave: handleAddStat, fields: [
         { name: 'category', label: 'Kategori *', type: 'text', required: true, placeholder: 'Contoh: Jumlah Penduduk' },
         { name: 'value', label: 'Nilai *', type: 'text', required: true, placeholder: 'Contoh: 3.245' },
         { name: 'year', label: 'Tahun *', type: 'number', required: true }
       ] },
+=======
+      ]},
+      stat: { title: isEditMode ? '️ Edit Statistik' : '➕ Tambah Statistik Baru', icon: '📈', color: '#14b8a6', data: statForm, setData: setStatForm, onSave: handleAddStat, fields: [
+        { name: 'category', label: 'Kategori *', type: 'text', required: true, placeholder: 'Contoh: Jumlah Penduduk' },
+        { name: 'value', label: 'Nilai *', type: 'text', required: true, placeholder: 'Contoh: 3.245' },
+        { name: 'year', label: 'Tahun *', type: 'number', required: true }
+      ]},
+>>>>>>> Stashed changes
       gallery: { title: isEditMode ? '✏️ Edit Foto' : '➕ Tambah Foto Baru', icon: '🖼️', color: '#059669', data: galleryForm, setData: setGalleryForm, onSave: handleAddGallery, fields: [
         { name: 'title', label: 'Judul Foto *', type: 'text', required: true },
         { name: 'image_url', label: 'Gambar Foto *', type: 'image', required: true, preview: true }
@@ -1272,8 +2079,13 @@ function App() {
                 {field.type === 'image' ? (
                   <div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+<<<<<<< Updated upstream
                       {[{ id: 'upload', label: '📁 Upload File' }, { id: 'url', label: '🔗 Pakai Link' }].map(m => (
                         <button key={m.id} type="button" onClick={() => setImageMode(m.id)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: `2px solid ${imageMode === m.id ? config.color : c.line}`, background: imageMode === m.id ? config.color : 'transparent', color: imageMode === m.id ? 'white' : (darkMode ? 'white' : '#475569'), fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>{m.label}</button>
+=======
+                      {[{ id: 'upload', label: ' Upload File' }, { id: 'url', label: '🔗 Pakai Link' }].map(m => (
+                        <button key={m.id} type="button" onClick={() => setImageMode(m.id)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: `2px solid ${imageMode === m.id ? config.color : (darkMode ? '#334155' : '#e2e8f0')}`, background: imageMode === m.id ? config.color : 'transparent', color: imageMode === m.id ? 'white' : (darkMode ? 'white' : '#475569'), fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>{m.label}</button>
+>>>>>>> Stashed changes
                       ))}
                     </div>
                     {imageMode === 'upload' ? (
@@ -1306,7 +2118,11 @@ function App() {
             ))}
             <div style={{ display: 'flex', gap: '12px', marginTop: '25px' }}>
               <button type="submit" disabled={adminLoading} style={{ flex: 1, padding: '16px', background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 100%)`, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: adminLoading ? 'not-allowed' : 'pointer', boxShadow: `0 4px 15px ${config.color}66` }}>
+<<<<<<< Updated upstream
                 {adminLoading ? '⏳ Menyimpan...' : '💾 Simpan'}
+=======
+                {adminLoading ? ' Menyimpan...' : '💾 Simpan'}
+>>>>>>> Stashed changes
               </button>
               <button type="button" onClick={() => setShowModal(null)} style={{ padding: '16px 28px', background: darkMode ? '#334155' : '#e2e8f0', color: c.text, border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>Batal</button>
             </div>
@@ -1327,13 +2143,11 @@ function App() {
     const onBlur = (e) => { e.target.style.borderColor = '#e2e8f0' }
     const fieldGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }
     const submitStyle = { width: '100%', padding: '16px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 8px 20px rgba(45, 138, 94, 0.35)' }
-
     const meta = {
       letter: { icon: '📋', title: 'Ajukan Surat Online', sub: 'Isi data, pengajuan akan diteruskan ke kelurahan' },
       complaint: { icon: '📢', title: 'Buat Pengaduan', sub: 'Sampaikan keluhan atau saran Anda' },
       info: { icon: 'ℹ️', title: 'Informasi Publik', sub: 'Informasi resmi Kelurahan Woloan Dua' }
     }[serviceModal]
-
     const requirements = LETTER_TYPES[letterForm.type] || []
     const complaintLen = complaintForm.message.trim().length
     const infoTabs = [
@@ -1342,9 +2156,12 @@ function App() {
       { id: 'statistik', label: '📊 Statistik' },
       { id: 'kontak', label: '🕐 Jam & Kontak' }
     ]
+<<<<<<< Updated upstream
     const infoBox = { padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }
     const emptyText = { textAlign: 'center', color: '#64748b', padding: '20px' }
 
+=======
+>>>>>>> Stashed changes
     return (
       <div onClick={closeService} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px', animation: 'fadeIn 0.3s' }}>
         <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', animation: 'slideUp 0.4s' }}>
@@ -1358,18 +2175,11 @@ function App() {
             </div>
             <button onClick={closeService} aria-label="Tutup" style={{ width: '38px', height: '38px', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', color: 'white', flexShrink: 0 }}>✕</button>
           </div>
-
           {serviceModal === 'letter' && (
             <form onSubmit={handleSubmitLetter} style={{ padding: '24px 28px 28px' }}>
               <div style={fieldGrid}>
-                <div>
-                  <label style={labelStyle}>Nama Lengkap *</label>
-                  <input type="text" required value={letterForm.name} onChange={e => setLetterForm({ ...letterForm, name: e.target.value })} placeholder="Sesuai KTP" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>No. WhatsApp *</label>
-                  <input type="tel" required value={letterForm.phone} onChange={e => setLetterForm({ ...letterForm, phone: e.target.value })} placeholder="08xxxxxxxxxx" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
+                <div><label style={labelStyle}>Nama Lengkap *</label><input type="text" required value={letterForm.name} onChange={e => setLetterForm({ ...letterForm, name: e.target.value })} placeholder="Sesuai KTP" style={inputStyle} onFocus={onFocus} onBlur={onBlur} /></div>
+                <div><label style={labelStyle}>No. WhatsApp *</label><input type="tel" required value={letterForm.phone} onChange={e => setLetterForm({ ...letterForm, phone: e.target.value })} placeholder="08xxxxxxxxxx" style={inputStyle} onFocus={onFocus} onBlur={onBlur} /></div>
               </div>
               <div style={{ marginBottom: '16px' }}>
                 <label style={labelStyle}>Jenis Surat *</label>
@@ -1392,6 +2202,7 @@ function App() {
                   </ul>
                 </div>
               )}
+<<<<<<< Updated upstream
               <div style={{ marginBottom: '16px' }}>
                 <label style={labelStyle}>Alamat / Lingkungan *</label>
                 <input type="text" required value={letterForm.address} onChange={e => setLetterForm({ ...letterForm, address: e.target.value })} placeholder="Contoh: Lingkungan III, Jl. ..." style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -1402,9 +2213,14 @@ function App() {
               </div>
               <button type="submit" style={submitStyle}>📨 Kirim Pengajuan</button>
               <p style={{ margin: '12px 0 0', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>Pengajuan akan diterima kelurahan untuk diproses.</p>
+=======
+              <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Alamat / Lingkungan *</label><input type="text" required value={letterForm.address} onChange={e => setLetterForm({ ...letterForm, address: e.target.value })} placeholder="Contoh: Lingkungan III, Jl. ..." style={inputStyle} onFocus={onFocus} onBlur={onBlur} /></div>
+              <div style={{ marginBottom: '22px' }}><label style={labelStyle}>Keperluan *</label><textarea required rows={3} value={letterForm.purpose} onChange={e => setLetterForm({ ...letterForm, purpose: e.target.value })} placeholder="Jelaskan singkat untuk apa surat ini dibutuhkan" style={{ ...inputStyle, resize: 'vertical' }} onFocus={onFocus} onBlur={onBlur}></textarea></div>
+              <button type="submit" style={submitStyle}>📤 Kirim Pengajuan</button>
+              <p style={{ margin: '12px 0 0', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>Pengajuan akan tersimpan di panel admin kelurahan untuk diproses.</p>
+>>>>>>> Stashed changes
             </form>
           )}
-
           {serviceModal === 'complaint' && (
             <form onSubmit={handleSubmitComplaint} style={{ padding: '24px 28px 28px' }}>
               <div style={{ marginBottom: '18px' }}>
@@ -1420,15 +2236,10 @@ function App() {
                 Kirim sebagai anonim (nama tidak dicantumkan)
               </label>
               <div style={fieldGrid}>
-                <div>
-                  <label style={labelStyle}>Nama {complaintForm.anonymous ? '' : '*'}</label>
-                  <input type="text" required={!complaintForm.anonymous} disabled={complaintForm.anonymous} value={complaintForm.anonymous ? '' : complaintForm.name} onChange={e => setComplaintForm({ ...complaintForm, name: e.target.value })} placeholder={complaintForm.anonymous ? 'Anonim' : 'Nama Anda'} style={{ ...inputStyle, background: complaintForm.anonymous ? '#f1f5f9' : 'white' }} onFocus={onFocus} onBlur={onBlur} />
-                </div>
-                <div>
-                  <label style={labelStyle}>No. HP / WhatsApp (opsional)</label>
-                  <input type="tel" value={complaintForm.phone} onChange={e => setComplaintForm({ ...complaintForm, phone: e.target.value })} placeholder="08xxxxxxxxxx" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                </div>
+                <div><label style={labelStyle}>Nama {complaintForm.anonymous ? '' : '*'}</label><input type="text" required={!complaintForm.anonymous} disabled={complaintForm.anonymous} value={complaintForm.anonymous ? '' : complaintForm.name} onChange={e => setComplaintForm({ ...complaintForm, name: e.target.value })} placeholder={complaintForm.anonymous ? 'Anonim' : 'Nama Anda'} style={{ ...inputStyle, background: complaintForm.anonymous ? '#f1f5f9' : 'white' }} onFocus={onFocus} onBlur={onBlur} /></div>
+                <div><label style={labelStyle}>No. HP / WhatsApp (opsional)</label><input type="tel" value={complaintForm.phone} onChange={e => setComplaintForm({ ...complaintForm, phone: e.target.value })} placeholder="08xxxxxxxxxx" style={inputStyle} onFocus={onFocus} onBlur={onBlur} /></div>
               </div>
+<<<<<<< Updated upstream
               <div style={{ marginBottom: '16px' }}>
                 <label style={labelStyle}>Lokasi Kejadian (opsional)</label>
                 <input type="text" value={complaintForm.location} onChange={e => setComplaintForm({ ...complaintForm, location: e.target.value })} placeholder="Contoh: Jalan depan Lingkungan II" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -1440,9 +2251,14 @@ function App() {
               </div>
               <button type="submit" style={submitStyle}>📤 Kirim Pengaduan</button>
               <p style={{ margin: '12px 0 0', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>Pengaduan akan diterima kelurahan untuk ditindaklanjuti.</p>
+=======
+              <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Lokasi Kejadian (opsional)</label><input type="text" value={complaintForm.location} onChange={e => setComplaintForm({ ...complaintForm, location: e.target.value })} placeholder="Contoh: Jalan depan Lingkungan II" style={inputStyle} onFocus={onFocus} onBlur={onBlur} /></div>
+              <div style={{ marginBottom: '22px' }}><label style={labelStyle}>Isi Pengaduan *</label><textarea required minLength={20} rows={5} value={complaintForm.message} onChange={e => setComplaintForm({ ...complaintForm, message: e.target.value })} placeholder="Ceritakan keluhan atau saran Anda dengan jelas (minimal 20 karakter)" style={{ ...inputStyle, resize: 'vertical' }} onFocus={onFocus} onBlur={onBlur}></textarea><p style={{ margin: '6px 0 0', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: complaintLen >= 20 ? '#2d8a5e' : '#94a3b8' }}>{complaintLen} / minimal 20 karakter</p></div>
+              <button type="submit" style={submitStyle}> Kirim Pengaduan</button>
+              <p style={{ margin: '12px 0 0', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>Pengaduan akan tersimpan di panel admin untuk ditindaklanjuti.</p>
+>>>>>>> Stashed changes
             </form>
           )}
-
           {serviceModal === 'info' && (
             <div style={{ padding: '20px 28px 28px' }}>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', background: '#f1f5f9', borderRadius: '14px', padding: '5px', marginBottom: '20px' }}>
@@ -1450,6 +2266,7 @@ function App() {
                   <button key={t.id} type="button" onClick={() => setInfoTab(t.id)} style={{ flex: '1 1 auto', padding: '10px 12px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', background: infoTab === t.id ? 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)' : 'transparent', color: infoTab === t.id ? 'white' : '#64748b', transition: 'all 0.2s' }}>{t.label}</button>
                 ))}
               </div>
+<<<<<<< Updated upstream
               {infoTab === 'profil' && (
                 villageInfo ? (
                   <div style={{ animation: 'slideUp 0.3s' }}>
@@ -1506,6 +2323,12 @@ function App() {
                   <a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}>🗺️ Buka Lokasi di Google Maps</a>
                 </div>
               )}
+=======
+              {infoTab === 'profil' && (villageInfo ? (<div style={{ animation: 'slideUp 0.3s' }}><h4 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>{villageInfo.name}</h4><p style={{ margin: '0 0 16px', color: '#475569', lineHeight: '1.7', fontSize: '15px' }}>{villageInfo.description}</p><p style={{ margin: '0 0 6px', color: '#334155', fontSize: '14px' }}><strong> Alamat:</strong> {villageInfo.address}</p><p style={{ margin: 0, color: '#334155', fontSize: '14px' }}><strong>📞 Telepon:</strong> {villageInfo.phone}</p></div>) : (<p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>Data profil belum tersedia.</p>))}
+              {infoTab === 'perangkat' && (sortedOfficials.length === 0 ? (<p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>) : (<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', animation: 'slideUp 0.3s' }}>{sortedOfficials.map((o, i) => (<div key={getItemId(o) || i} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '14px' }}><div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: '800', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{(o.name || '?').charAt(0).toUpperCase()}</div><div style={{ minWidth: 0 }}><p style={{ margin: 0, color: '#1e293b', fontWeight: '700', fontSize: '15px' }}>{o.name}</p><p style={{ margin: '2px 0 0', color: '#059669', fontWeight: '600', fontSize: '13px' }}>{o.position}</p></div></div>))}</div>))}
+              {infoTab === 'statistik' && (statistics.length === 0 ? (<p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>Belum ada data statistik.</p>) : (<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', animation: 'slideUp 0.3s' }}>{statistics.map((s, i) => (<div key={getItemId(s) || i} style={{ textAlign: 'center', padding: '16px 12px', border: '1px solid #e2e8f0', borderRadius: '14px', background: '#f8fafc' }}><p style={{ margin: 0, color: '#2d8a5e', fontWeight: '800', fontSize: '26px' }}>{s.value}</p><p style={{ margin: '4px 0 2px', color: '#1e293b', fontWeight: '700', fontSize: '13px' }}>{s.category}</p><p style={{ margin: 0, color: '#94a3b8', fontSize: '12px' }}>Tahun {s.year}</p></div>))}</div>))}
+              {infoTab === 'kontak' && (<div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'slideUp 0.3s' }}><div style={{ padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }}><p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '12px', fontWeight: '700' }}>🕗 JAM LAYANAN</p><p style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '600' }}>{SERVICE_INFO.jam}</p></div><div style={{ padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }}><p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '12px', fontWeight: '700' }}>📍 ALAMAT KANTOR</p><p style={{ margin: 0, color: '#1e293b', fontSize: '15px', lineHeight: '1.6' }}>{mapCoordinates.address}</p></div>{villageInfo?.phone && (<div style={{ padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '14px' }}><p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '12px', fontWeight: '700' }}>📞 TELEPON</p><p style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '600' }}>{villageInfo.phone}</p></div>)}<a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}>🗺️ Buka Lokasi di Google Maps</a></div>)}
+>>>>>>> Stashed changes
             </div>
           )}
         </div>
@@ -1533,7 +2356,6 @@ function App() {
         </div>
         {menuOpen && (<ul className="mobile-menu">{menuItems.map((item, index) => (<li key={index}><a href={item.link} onClick={() => setMenuOpen(false)}>{item.name}</a></li>))}</ul>)}
       </nav>
-
       <section className="hero" id="home">
         <div className="hero-bg" style={{ backgroundImage: `url(${slides[currentSlide].image})` }}></div>
         <div className="hero-overlay"></div>
@@ -1556,7 +2378,6 @@ function App() {
           <button className="btn-complaint" onClick={() => openService('complaint')}><span className="complaint-icon">📢</span><span>Pengaduan</span></button>
         </div>
       </section>
-
       <section className="quick-menu" id="quick-menu">
         <div className="container">
           <h2 className="section-title">Layanan Cepat</h2>
@@ -1566,19 +2387,27 @@ function App() {
               { icon: '📋', title: 'Layanan Surat', desc: 'Ajukan surat online', link: '#layanan' },
               { icon: '📢', title: 'Pengaduan', desc: 'Sampaikan keluhan', link: '#layanan' },
               { icon: '📞', title: 'Kontak Darurat', desc: 'Nomor penting', link: '#profil' },
-              { icon: '📊', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
+              { icon: '', title: 'Statistik', desc: 'Data penduduk', link: '#infografis' },
               { icon: 'ℹ️', title: 'PPID', desc: 'Informasi publik', link: '#ppid' },
+<<<<<<< Updated upstream
               { icon: '📰', title: 'Berita', desc: 'Kabar terbaru', link: '#berita' },
+=======
+              { icon: '', title: 'Berita', desc: 'Kabar terbaru', link: '#berita' },
+              { icon: '🎨', title: 'Potensi Kelurahan', desc: 'Sentra ukiran kayu', link: '#profil' }
+>>>>>>> Stashed changes
             ].map((item, index) => (<a key={index} href={item.link} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}><div className="quick-icon">{item.icon}</div><h3>{item.title}</h3><p>{item.desc}</p></a>))}
           </div>
         </div>
       </section>
-
       <section className="info-section" id="profil">
         <div className="container">
           <h2 className="section-title">Profil Kelurahan</h2>
           {profileLoading ? (<p style={{ textAlign: 'center', padding: '20px' }}>Memuat profil...</p>) : villageInfo ? (
+<<<<<<< Updated upstream
             <div className="info-grid"><div className="info-card" style={{ gridColumn: '1 / -1' }}><h3>🏛️ {villageInfo.name}</h3><p>{villageInfo.description}</p><p style={{ marginTop: '15px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p></div></div>
+=======
+            <div className="info-grid"><div className="info-card" style={{ gridColumn: '1 / -1' }}><h3>🏛️ {villageInfo.name}</h3><p>{villageInfo.description}</p><p style={{ marginTop: '15px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p><p><strong> Telepon:</strong> {villageInfo.phone}</p></div></div>
+>>>>>>> Stashed changes
           ) : (<p style={{ textAlign: 'center', padding: '20px' }}>Data profil belum tersedia.</p>)}
           <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>Perangkat Kelurahan</h3>
           {sortedOfficials.length === 0 ? (<p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>) : (
@@ -1586,7 +2415,6 @@ function App() {
           )}
         </div>
       </section>
-
       <section className="info-section" id="infografis">
         <div className="container">
           <h2 className="section-title">Infografis & Statistik</h2>
@@ -1595,7 +2423,6 @@ function App() {
           )}
         </div>
       </section>
-
       <section className="info-section" id="galeri" style={{ backgroundColor: '#f8fafc' }}>
         <div className="container">
           <h2 className="section-title">Galeri Kegiatan</h2>
@@ -1604,7 +2431,6 @@ function App() {
           )}
         </div>
       </section>
-
       <section className="info-section" id="layanan">
         <div className="container">
           <h2 className="section-title">Layanan</h2>
@@ -1615,7 +2441,6 @@ function App() {
           </div>
         </div>
       </section>
-
       <section className="info-section" id="berita">
         <div className="container">
           <h2 className="section-title">Berita Terbaru</h2>
@@ -1624,7 +2449,6 @@ function App() {
           )}
         </div>
       </section>
-
       <section className="info-section" id="peta" style={{ backgroundColor: '#f0fdf4' }}>
         <div className="container">
           <h2 className="section-title">📍 Peta Lokasi Kelurahan</h2>
@@ -1652,16 +2476,20 @@ function App() {
                   </div>
                 </div>
               </div>
+<<<<<<< Updated upstream
               <a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.3)' }}>🗺️ Buka di Google Maps</a>
+=======
+              <a href={`https://www.google.com/maps/search/?api=1&query=${mapCoordinates.lat},${mapCoordinates.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '14px', background: 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)', color: 'white', textAlign: 'center', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 15px rgba(45, 138, 94, 0.3)', transition: 'all 0.3s' }} onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}>🗺️ Buka di Google Maps</a>
+>>>>>>> Stashed changes
             </div>
           </div>
         </div>
       </section>
-
       <section className="info-section" id="ppid">
         <div className="container">
           <h2 className="section-title">PPID</h2>
           <div className="info-grid">
+<<<<<<< Updated upstream
             <div className="info-card"><h3>ℹ️ Informasi Publik</h3><p>Pejabat Pengelola Informasi dan Dokumentasi.</p><a href="#" className="btn-link" onClick={(e) => { e.preventDefault(); openService('info') }}>Lihat Informasi →</a></div>
             <div className="info-card"><h3>📄 Permohonan Informasi</h3><p>Ajukan permohonan informasi publik.</p><a href="#" className="btn-link" onClick={(e) => { e.preventDefault(); openService('letter') }}>Ajukan →</a></div>
             <div className="info-card"><h3>📊 Statistik Informasi</h3><p>Statistik permohonan informasi publik.</p><a href="#infografis" className="btn-link">Lihat Statistik →</a></div>
@@ -1679,13 +2507,28 @@ function App() {
           </div>
         </div>
       )}
+=======
+            <div className="info-card"><h3>️ Informasi Publik</h3><p>Pejabat Pengelola Informasi dan Dokumentasi.</p><a href="#" className="btn-link">Lihat Informasi →</a></div>
+            <div className="info-card"><h3>📄 Permohonan Informasi</h3><p>Ajukan permohonan informasi publik.</p><a href="#" className="btn-link">Ajukan →</a></div>
+            <div className="info-card"><h3>📊 Statistik Informasi</h3><p>Statistik permohonan informasi publik.</p><a href="#" className="btn-link">Lihat Statistik →</a></div>
+          </div>
+        </div>
+      </section>
+      {selectedArticle && (<div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={closeArticleModal}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }} onClick={(e) => e.stopPropagation()}><button onClick={closeArticleModal} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>✕</button><h2 style={{ color: '#2d8a5e', marginBottom: '15px', paddingRight: '30px' }}>📰 {selectedArticle.title}</h2><p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>Oleh: {selectedArticle.author || 'Admin'}</p><div style={{ lineHeight: '1.6' }}>{selectedArticle.content}</div></div></div>)}
+>>>>>>> Stashed changes
 
+      {/* ✅ PERBAIKAN: renderModal() dipindahkan ke sini (level App return) */}
+      {renderModal()}
       {renderServiceModal()}
 
       <footer className="footer">
         <div className="container">
           <div className="footer-grid">
+<<<<<<< Updated upstream
             <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 {villageInfo?.phone || '-'}<br />✉️ kelurahan.woloandua@gmail.com</p></div>
+=======
+            <div className="footer-col"><h4>Kelurahan Woloan Dua</h4><p>Kecamatan Tomohon Barat<br />Kota Tomohon, Sulawesi Utara</p><p>📞 0431-123456<br />✉️ kelurahan.woloandua@gmail.com</p></div>
+>>>>>>> Stashed changes
             <div className="footer-col"><h4>Menu Cepat</h4><ul><li><a href="#profil">Profil Kelurahan</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#berita">Berita</a></li></ul></div>
           </div>
           <div className="footer-bottom">
@@ -1693,7 +2536,6 @@ function App() {
           </div>
         </div>
       </footer>
-
       <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {toasts.map(toast => (
           <div key={toast.id} style={{ padding: '16px 24px', borderRadius: '12px', color: 'white', fontWeight: '600', fontSize: '14px', background: toast.type === 'success' ? 'linear-gradient(135deg, #2d8a5e 0%, #1e5d3f 100%)' : toast.type === 'error' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', animation: 'slideInRight 0.4s', minWidth: '250px' }}>
@@ -1701,7 +2543,6 @@ function App() {
           </div>
         ))}
       </div>
-
       <style>{`
         @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
