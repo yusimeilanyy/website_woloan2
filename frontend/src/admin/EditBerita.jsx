@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 
+const API = import.meta.env.VITE_API_URL || 'https://woloan-backend-production.up.railway.app'
+
 function EditBerita() {
   const { id } = useParams()
   const [formData, setFormData] = useState({
@@ -22,7 +24,7 @@ function EditBerita() {
     }
 
     // Ambil data artikel
-    fetch(`http://localhost:5000/api/articles/${id}`)
+    fetch(`${API}/api/articles/${id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -55,7 +57,7 @@ function EditBerita() {
     const token = localStorage.getItem('token')
 
     try {
-      const response = await fetch(`http://localhost:5000/api/articles/${id}`, {
+      const response = await fetch(`${API}/api/articles/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

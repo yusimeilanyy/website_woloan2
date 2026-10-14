@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 
+const API = import.meta.env.VITE_API_URL || 'https://woloan-backend-production.up.railway.app'
+
 function AdminBerita() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,7 +19,7 @@ function AdminBerita() {
   // Ambil semua artikel
   const fetchArticles = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/articles')
+const res = await axios.get(`${API}/api/articles`)
       setArticles(res.data.data || [])
       setLoading(false)
     } catch (err) {
@@ -71,11 +73,11 @@ function AdminBerita() {
     try {
       if (editMode) {
         // UPDATE
-        await axios.put(`http://localhost:5000/api/articles/${currentId}`, formData)
+        await axios.put(`${API}/api/articles/${currentId}`, formData)
         alert('✅ Berita berhasil diperbarui!')
       } else {
         // CREATE
-        await axios.post('http://localhost:5000/api/articles', formData)
+        await axios.post(`${API}/api/articles`, formData)
         alert('✅ Berita berhasil ditambahkan!')
       }
       
@@ -92,7 +94,7 @@ function AdminBerita() {
     if (!window.confirm('Yakin ingin menghapus berita ini?')) return
     
     try {
-      await axios.delete(`http://localhost:5000/api/articles/${id}`)
+      await axios.delete(`${API}/api/articles/${id}`)
       alert('🗑️ Berita berhasil dihapus!')
       fetchArticles() // Refresh data
     } catch (err) {

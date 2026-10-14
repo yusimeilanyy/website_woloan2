@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 
+const API = import.meta.env.VITE_API_URL || 'https://woloan-backend-production.up.railway.app'
+
 function TambahBerita() {
   const [formData, setFormData] = useState({
     title: '',
@@ -32,7 +34,7 @@ function TambahBerita() {
     const token = localStorage.getItem('token')
 
     try {
-      const response = await fetch('http://localhost:5000/api/articles', {
+      const response = await fetch(`${API}/api/articles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
