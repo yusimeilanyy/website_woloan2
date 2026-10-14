@@ -6,35 +6,36 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Di hosting (Render/Railway) aplikasi berada di belakang proxy
+app.set('trust proxy', 1);
 
-// Import database
+// Pisahkan beberapa domain dengan koma, contoh: https://web-anda.vercel.app,http://localhost:5173
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',');
+app.use(cors({ origin: allowedOrigins }));
+
+// Naikkan batas agar upload gambar base64 tidak ditolak
+app.use(express.json({ limit: '2mb' }));
+
 require('./db');
 
-// Import routes
 const articleRoutes = require('./routes/articleRoutes');
 const profileRoutes = require('./routes/profileRoutes');
-const serviceRoutes = require('./routes/serviceRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-const authRoutes = require('./routes/authRoutes'); // ← TAMBAH INI
+const authRoutes = require('./routes/authRoutes');
+const { letterRouter, complaintRouter } = require('./routes/submissionRoutes');
 
-// Daftarkan routes
 app.use('/api/articles', articleRoutes);
 app.use('/api/profile', profileRoutes);
-app.use('/api/services', serviceRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/auth', authRoutes); // ← TAMBAH INI
+app.use('/api/auth', authRoutes);
+app.use('/api/letters', letterRouter);
+app.use('/api/complaints', complaintRouter);
 
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'API Website Kelurahan Woloan Dua',
-    version: '1.0.0',
-    status: 'running'
-  });
+  res.json({ message: 'API Website Kelurahan Woloan Dua', version: '1.0.0', status: 'running' });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+  console.log(`Server berjalan di port ${PORT}`);
 });
