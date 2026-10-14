@@ -42,33 +42,35 @@ button {
   top: 0;
   left: 0;
   width: 100%;
-
   z-index: 1000;
 
   padding: 18px 0;
-
-  background: transparent;
+  background: rgba(20, 50, 35, 0.85);
 
   transition:
     background 0.3s ease,
     box-shadow 0.3s ease,
     padding 0.3s ease;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
+/* Navbar ketika halaman di-scroll */
 .navbar-scrolled {
-  background: rgba(20, 50, 35, 0.95);
-
+  background: rgba(20, 50, 35, 0.97);
   padding: 12px 0;
 
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
+/* Tata letak navbar */
 .navbar-container {
   width: 100%;
   max-width: 1450px;
-
   margin: 0 auto;
   padding: 0 50px;
 
@@ -76,6 +78,50 @@ button {
   justify-content: space-between;
   align-items: center;
 }
+
+/* Nama kelurahan */
+.navbar-brand,
+.navbar-brand h1,
+.navbar-brand h2,
+.navbar-brand p,
+.navbar-brand span {
+  color: #ffffff !important;
+}
+
+/* Menu navigasi */
+.navbar a,
+.navbar .nav-link {
+  color: #ffffff !important;
+  font-weight: 600;
+  text-decoration: none;
+
+  transition: color 0.3s ease;
+}
+
+/* Efek hover */
+.navbar a:hover,
+.navbar .nav-link:hover {
+  color: #a7f3d0 !important;
+}
+
+/* Menu aktif */
+.navbar a.active,
+.navbar .nav-link.active {
+  color: #ffffff !important;
+}
+
+/* Logo */
+.navbar-brand img {
+  object-fit: contain;
+}
+
+/* Tampilan layar kecil */
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 20px;
+  }
+}
+
 
 .navbar-brand {
   display: flex;
@@ -158,6 +204,37 @@ button {
 
   background: white;
 }
+
+/* FIX: Memastikan teks navbar terlihat jelas */
+.navbar .navbar-container .navbar-brand .brand-text h1 {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.navbar .navbar-container .navbar-brand .brand-text p {
+  color: #f1f5f9 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+}
+
+.navbar .navbar-container .navbar-menu a,
+.navbar .navbar-container .navbar-menu a:visited,
+.navbar .navbar-container .navbar-menu a.active {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Latar belakang navbar agar teks kontras */
+.navbar,
+.navbar.navbar-scrolled {
+  background-color: rgba(20, 50, 35, 0.97) !important;
+}
+
 
 /* =========================
    MOBILE MENU BUTTON
