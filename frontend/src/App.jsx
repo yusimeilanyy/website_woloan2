@@ -1586,7 +1586,7 @@ function App() {
         <div className="container">
           <h2 className="section-title">Profil Kelurahan</h2>
           {profileLoading ? (<p style={{ textAlign: 'center', padding: '20px' }}>Memuat profil...</p>) : villageInfo ? (
-            <div className="info-grid"><div className="info-card" style={{ gridColumn: '1 / -1' }}><h3>🏛️ {villageInfo.name}</h3><p>{villageInfo.description}</p><p style={{ marginTop: '15px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p><p><strong>📞 Telepon:</strong> {villageInfo.phone}</p></div></div>
+            <div className="info-grid"><div className="info-card" style={{ gridColumn: '1 / -1' }}><h3>🏛️ {villageInfo.name}</h3><p>{villageInfo.description}</p><p style={{ marginTop: '15px' }}><strong>📍 Alamat:</strong> {villageInfo.address}</p></div></div>
           ) : (<p style={{ textAlign: 'center', padding: '20px' }}>Data profil belum tersedia.</p>)}
           <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>Perangkat Kelurahan</h3>
           {sortedOfficials.length === 0 ? (<p style={{ textAlign: 'center', padding: '20px' }}>Belum ada data perangkat kelurahan.</p>) : (
